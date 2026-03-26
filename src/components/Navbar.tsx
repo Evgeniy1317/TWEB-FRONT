@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -10,6 +10,8 @@ import {
   Menu,
   X,
   LogIn,
+  UserPlus,
+  Globe,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -26,62 +28,143 @@ const navLinks: NavLink[] = [
   { to: '/tournaments', label: 'Турниры', icon: Trophy },
 ];
 
+const languages = [
+  { code: 'ru', label: 'Русский' },
+  { code: 'en', label: 'English' },
+  { code: 'ro', label: 'Română' },
+] as const;
+
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const [currentLang, setCurrentLang] = useState<string>('ru');
+  const langRef = useRef<HTMLDivElement>(null);
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
-  return (
-    <nav className="sticky top-0 z-50 glass shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-              <span className="text-white font-black text-sm">SH</span>
-            </div>
-            <span className="text-xl font-bold text-dark hidden sm:block">
-              Smash<span className="text-primary">Hub</span>
-            </span>
-          </Link>
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-          <div className="hidden md:flex items-center gap-1">
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, []);
+
+  const handleLangChange = (code: string) => {
+    setCurrentLang(code);
+    setLangOpen(false);
+    // TODO: интеграция i18n
+  };
+
+  return (
+    <nav className="fixed top-0 left-0 right-0 z-50">
+      <div
+        className={`absolute inset-0 glass-dark pointer-events-none transition-opacity duration-150 ease-out ${
+          scrolled ? 'opacity-100 shadow-lg' : 'opacity-0'
+        }`}
+      />
+      <div className="relative px-4 sm:px-6">
+        <div className="flex items-center h-[72px]">
+          {/* Left — logo */}
+          <div className="flex-1 flex items-center">
+            <Link to="/" className="flex items-center gap-3 group">
+              <img
+                src="/media/images/free-icon-shuttlecock-8280779.png"
+                alt="SmashHub"
+                className="w-11 h-11 object-contain group-hover:scale-110 transition-transform"
+              />
+              <span className="text-2xl font-bold text-white hidden sm:block tracking-tight">
+                Smash<span className="text-primary">Hub</span>
+              </span>
+            </Link>
+          </div>
+
+          {/* Center — nav + lang */}
+          <div className="hidden md:flex items-center bg-white/[0.06] rounded-full px-2 py-2">
             {navLinks.map(({ to, label, icon: Icon }) => {
               const isActive = location.pathname === to;
               return (
                 <Link
                   key={to}
                   to={to}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium transition-all
+                  className={`flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[15px] font-medium transition-all
                     ${isActive
-                      ? 'bg-primary/10 text-primary-dark'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:text-white'
                     }`}
                 >
-                  <Icon size={16} />
+                  <Icon size={18} />
                   {label}
                 </Link>
               );
             })}
+
+            <div className="w-px h-5 bg-white/15 mx-2" />
+
+            <div ref={langRef} className="relative">
+              <button
+                onClick={() => setLangOpen(!langOpen)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[15px] font-medium text-white/60 hover:text-white transition-all"
+              >
+                <Globe size={18} />
+                <span className="uppercase text-sm tracking-wider">{currentLang}</span>
+              </button>
+
+              {langOpen && (
+                <div className="absolute right-0 mt-4 w-40 rounded-xl glass-dark shadow-xl overflow-hidden border border-white/10">
+                  {languages.map(({ code, label }) => (
+                    <button
+                      key={code}
+                      onClick={() => handleLangChange(code)}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                        currentLang === code
+                          ? 'bg-primary/20 text-primary font-medium'
+                          : 'text-white/60 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Right — auth */}
+          <div className="flex-1 flex items-center justify-end gap-3">
             <Link
               to={isAuthenticated ? '/profile' : '/login'}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all
-                ${isAuthenticated
-                  ? 'bg-primary/10 text-primary-dark hover:bg-primary/20'
-                  : 'bg-primary text-white hover:bg-primary-dark shadow-md hover:shadow-lg'
-                }`}
+              className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[15px] font-medium text-white/80 hover:text-white transition-all"
             >
-              {isAuthenticated ? <User size={16} /> : <LogIn size={16} />}
+              {isAuthenticated ? <User size={18} /> : <LogIn size={18} />}
               <span className="hidden sm:inline">
                 {isAuthenticated ? 'Профиль' : 'Войти'}
               </span>
             </Link>
 
+            {!isAuthenticated && (
+              <Link
+                to="/login"
+                className="hidden sm:flex items-center gap-2 px-6 py-2.5 rounded-full text-[15px] font-medium bg-primary text-dark hover:bg-primary-dark hover:text-white transition-all"
+              >
+                <UserPlus size={18} />
+                Регистрация
+              </Link>
+            )}
+
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 rounded-xl text-gray-600 hover:bg-gray-100 transition-colors"
+              className="md:hidden p-2 rounded-full text-white/60 hover:bg-white/10 transition-colors"
             >
               {mobileOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -90,8 +173,8 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white/95 backdrop-blur-md">
-          <div className="px-4 py-3 space-y-1">
+        <div className="md:hidden glass-dark border-t border-white/5">
+          <div className="max-w-[1440px] mx-auto px-8 py-4 space-y-1">
             {navLinks.map(({ to, label, icon: Icon }) => {
               const isActive = location.pathname === to;
               return (
@@ -101,8 +184,8 @@ export default function Navbar() {
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all
                     ${isActive
-                      ? 'bg-primary/10 text-primary-dark'
-                      : 'text-gray-600 hover:bg-gray-50'
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/60 hover:text-white'
                     }`}
                 >
                   <Icon size={18} />
@@ -110,6 +193,16 @@ export default function Navbar() {
                 </Link>
               );
             })}
+            {!isAuthenticated && (
+              <Link
+                to="/login"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/60 hover:text-white"
+              >
+                <UserPlus size={18} />
+                Регистрация
+              </Link>
+            )}
           </div>
         </div>
       )}
