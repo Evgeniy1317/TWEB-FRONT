@@ -2,6 +2,8 @@
 
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-display: 'Unbounded', 'Inter', system-ui, sans-serif;
   --color-primary: #00E676;
   --color-primary-dark: #00C853;
   --color-primary-light: #B9F6CA;
