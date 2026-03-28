@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -66,6 +66,14 @@ export default function Navbar() {
     // TODO: интеграция i18n
   };
 
+  const handleLogoClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    if (location.pathname === '/') {
+      e.preventDefault();
+      setMobileOpen(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50">
       <div
@@ -77,9 +85,9 @@ export default function Navbar() {
         <div className="flex items-center h-[72px]">
           {/* Left — logo */}
           <div className="flex-1 flex items-center">
-            <Link to="/" className="flex items-center gap-3 group">
+            <Link to="/" onClick={handleLogoClick} className="flex items-center gap-0.5 group">
               <img
-                src="/media/images/free-icon-shuttlecock-8280779.png"
+                src="/media/images/background-removed.png"
                 alt="SmashHub"
                 className="w-11 h-11 object-contain group-hover:scale-110 transition-transform"
               />
