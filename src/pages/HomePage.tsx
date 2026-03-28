@@ -30,22 +30,37 @@ export default function HomePage() {
     <div className="bg-white">
       {/* Hero */}
       <section className="relative min-h-screen -mt-[72px] pt-[72px] flex items-center bg-dark overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/6 w-[600px] h-[600px] bg-primary/[0.07] rounded-full blur-[150px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/[0.05] rounded-full blur-[120px]" />
+        <div className="absolute inset-0 z-0">
+          <video
+            className="absolute inset-0 h-full w-full object-cover pointer-events-none"
+            src="/media/videos/IMG_3744.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-hidden
+          />
+          <div
+            className="absolute inset-0 bg-dark/55"
+            aria-hidden
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-dark/40 via-transparent to-dark/70 pointer-events-none" />
         </div>
 
         <div className="relative z-10 w-full px-6 sm:px-10 lg:px-16">
           <div className="max-w-[900px]">
-            <h1 className="font-display text-[2rem] sm:text-[2.5rem] lg:text-[3.25rem] xl:text-[4rem] font-bold text-white leading-[1.15] mb-8">
+            <h1 className="font-distressed text-left text-[2rem] sm:text-[2.5rem] lg:text-[3.25rem] xl:text-[4rem] font-normal text-white leading-[1.15] mb-8">
               <span className="whitespace-nowrap">Твоя лучшая игра</span>
               <br />
               начинается
-              <span className="text-primary"> с&nbsp;правильной экипировки</span>
+              <span className="text-primary"> с&nbsp;правильной</span>
+              <br />
+              <span className="text-primary">экипировки</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-white/50 mb-14 leading-relaxed font-light whitespace-nowrap">
-              Крупнейшая бадминтон-барахолка Кишинёва — покупай, продавай, побеждай!
+            <p className="text-base sm:text-lg text-white/50 mb-14 leading-relaxed font-light font-sans">
+              Крупнейшая бадминтон-барахолка Кишинёва: покупай, продавай, побеждай!
             </p>
 
             <div className="flex flex-col sm:flex-row gap-5">

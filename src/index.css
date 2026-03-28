@@ -4,6 +4,7 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   --font-display: 'Unbounded', 'Inter', system-ui, sans-serif;
+  --font-distressed: 'Rubik Distressed', 'Inter', cursive;
   --color-primary: #00E676;
   --color-primary-dark: #00C853;
   --color-primary-light: #B9F6CA;
@@ -14,6 +15,11 @@
 
 body {
   font-family: var(--font-sans);
+}
+
+.font-distressed {
+  font-family: var(--font-distressed);
+  font-weight: 400;
 }
 
 .glass {
