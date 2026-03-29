@@ -11,6 +11,9 @@ const categoryLabel: Record<Product['category'], string> = {
   rackets: 'Ракетки',
   shoes: 'Обувь',
   shuttlecocks: 'Воланы',
+  strings: 'Струны для перетяжки',
+  bags: 'Сумки и чехлы',
+  clothing: 'Одежда',
   accessories: 'Аксессуары',
 };
 

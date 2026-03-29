@@ -4,12 +4,18 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { AuthSplitCardShell } from '../components/auth/AuthSplitCardShell';
 import { GoogleIcon } from '../components/auth/GoogleIcon';
-import { authInputClass } from '../components/auth/authFieldClasses';
+import {
+  authInputClass,
+  getAuthEmailAriaInvalid,
+  getAuthEmailInputClass,
+} from '../components/auth/authFieldClasses';
 
 const LOGIN_IMAGE = '/media/images/original-54780b5d8c3bd316e079f55fc52e6baf.webp';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  /** Красный/зелёный только после ухода с поля; при фокусе снова нейтрально */
+  const [emailShowValidation, setEmailShowValidation] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
@@ -46,8 +52,11 @@ export default function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className={authInputClass}
+            onFocus={() => setEmailShowValidation(false)}
+            onBlur={() => setEmailShowValidation(true)}
+            className={getAuthEmailInputClass(email, emailShowValidation)}
             placeholder="you@mail.md"
+            aria-invalid={getAuthEmailAriaInvalid(email, emailShowValidation)}
           />
         </div>
         <div>
@@ -109,8 +118,6 @@ export default function LoginPage() {
           Зарегистрироваться
         </Link>
       </p>
-
-      <p className="mt-3 text-center text-[11px] text-white/30">Демо: любой email и пароль</p>
     </AuthSplitCardShell>
   );
 }

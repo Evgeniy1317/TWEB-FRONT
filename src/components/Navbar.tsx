@@ -39,11 +39,18 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState<string>('ru');
+  /** Только /market: прячем шапку при скролле вниз, показываем при скролле вверх */
+  const [marketNavHidden, setMarketNavHidden] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
+  const marketScrollLastY = useRef(0);
+  const mobileOpenRef = useRef(false);
   const { isAuthenticated } = useAuth();
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const isMarket = location.pathname === '/market' || location.pathname.startsWith('/market/');
   const barVisible = !isHome || scrolled;
+
+  mobileOpenRef.current = mobileOpen;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -55,6 +62,30 @@ export default function Navbar() {
   useEffect(() => {
     setScrolled(window.scrollY > 10);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isMarket) {
+      setMarketNavHidden(false);
+      marketScrollLastY.current = window.scrollY;
+      return;
+    }
+    marketScrollLastY.current = window.scrollY;
+    const onScroll = () => {
+      if (mobileOpenRef.current) return;
+      const y = window.scrollY;
+      const prev = marketScrollLastY.current;
+      const delta = y - prev;
+      marketScrollLastY.current = y;
+      if (y < 56) {
+        setMarketNavHidden(false);
+        return;
+      }
+      if (delta > 6) setMarketNavHidden(true);
+      else if (delta < -6) setMarketNavHidden(false);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isMarket]);
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
@@ -81,7 +112,11 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50">
+    <nav
+      className={`fixed top-0 left-0 right-0 z-50 transition-transform duration-300 ease-out ${
+        isMarket && marketNavHidden ? '-translate-y-full' : 'translate-y-0'
+      }`}
+    >
       <div
         className={`absolute inset-0 glass-dark pointer-events-none transition-opacity duration-150 ease-out ${
           barVisible ? 'opacity-100 shadow-lg' : 'opacity-0'

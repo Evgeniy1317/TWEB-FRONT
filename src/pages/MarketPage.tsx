@@ -1,188 +1,197 @@
-import { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
-import ProductCard from '../components/ProductCard';
+import { useMemo, useState, type FormEvent } from 'react';
+import { ChevronDown, LayoutGrid, Search } from 'lucide-react';
+import FleaMarketListingCard from '../components/FleaMarketListingCard';
 import { products } from '../data/mockData';
 
-interface FilterOption {
-  value: string;
-  label: string;
+function shuffle<T>(items: T[]): T[] {
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
-const categories: FilterOption[] = [
-  { value: 'all', label: 'Все' },
-  { value: 'rackets', label: 'Ракетки' },
-  { value: 'shoes', label: 'Обувь' },
-  { value: 'shuttlecocks', label: 'Воланы' },
-  { value: 'accessories', label: 'Аксессуары' },
-];
+type RibbonItem = {
+  id: string;
+  label: string;
+  thumb: string;
+};
 
-const conditions: FilterOption[] = [
-  { value: 'all', label: 'Все' },
-  { value: 'new', label: 'Новое' },
-  { value: 'used', label: 'Б/У' },
+/** Шесть карточек категорий; «Все категории» — отдельный блок справа */
+const CATEGORY_RIBBON: RibbonItem[] = [
+  {
+    id: 'rackets',
+    label: 'Ракетки',
+    thumb: 'https://picsum.photos/seed/smash-cat-rackets/480/360',
+  },
+  {
+    id: 'shuttlecocks',
+    label: 'Воланы',
+    thumb: 'https://picsum.photos/seed/smash-cat-shuttle/480/360',
+  },
+  {
+    id: 'strings',
+    label: 'Струны для перетяжки',
+    thumb: 'https://picsum.photos/seed/smash-cat-strings/480/360',
+  },
+  {
+    id: 'shoes',
+    label: 'Обувь',
+    thumb: 'https://picsum.photos/seed/smash-cat-shoes/480/360',
+  },
+  {
+    id: 'clothing',
+    label: 'Одежда',
+    thumb: 'https://picsum.photos/seed/smash-cat-clothing/480/360',
+  },
+  {
+    id: 'bags',
+    label: 'Сумки и чехлы',
+    thumb: 'https://picsum.photos/seed/smash-cat-bags/480/360',
+  },
 ];
 
 export default function MarketPage() {
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
-  const [condition, setCondition] = useState('all');
-  const [favorites, setFavorites] = useState<number[]>([1, 3]);
-  const [showFilters, setShowFilters] = useState(false);
+  const [selectedRibbonId, setSelectedRibbonId] = useState<string>('all');
+  const [cartProductIds, setCartProductIds] = useState<number[]>([]);
 
-  const toggleFavorite = (id: number) => {
-    setFavorites(prev =>
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+  const shuffledProducts = useMemo(() => shuffle([...products]), []);
+
+  const visibleListings = useMemo(() => {
+    let list =
+      selectedRibbonId === 'all'
+        ? shuffledProducts
+        : shuffledProducts.filter(p => p.category === selectedRibbonId);
+    const q = search.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter(
+      p =>
+        p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
     );
+  }, [shuffledProducts, search, selectedRibbonId]);
+
+  const toggleCartItem = (id: number) => {
+    setCartProductIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
   };
 
-  const filtered = useMemo(() => {
-    return products.filter(p => {
-      const matchCategory = category === 'all' || p.category === category;
-      const matchCondition = condition === 'all' || p.condition === condition;
-      const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
-      return matchCategory && matchCondition && matchSearch;
-    });
-  }, [category, condition, search]);
-
-  const activeFilters = (category !== 'all' ? 1 : 0) + (condition !== 'all' ? 1 : 0);
-
-  const filterBtnClass = (active: boolean) =>
-    `w-full text-left px-3 py-2 text-xs font-bold border-2 border-black rounded-sm transition-colors ${
-      active ? 'bg-black text-white sketch-shadow-sm' : 'bg-white hover:bg-neutral-100'
-    }`;
+  const onSearchSubmit = (e: FormEvent) => {
+    e.preventDefault();
+  };
 
   return (
-    <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <header className="mb-8 border-2 border-black bg-white sketch-shadow rounded-md p-4 sm:p-6">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-neutral-500 mb-2">
-            Sketching Kit · маркет
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Барахолка</h1>
-          <p className="text-sm text-neutral-600 mt-2 max-w-xl border-l-4 border-black pl-3">
-            Экипировка от бадминтонистов для бадминтонистов
-          </p>
-        </header>
+    <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full text-gray-900">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <div className="mb-6 flex flex-col gap-3 sm:mb-8 sm:gap-3">
+          {/* Верх: кнопка + поиск — ширина как у ленты ниже */}
+          <form onSubmit={onSearchSubmit} className="flex w-full flex-col gap-3 sm:flex-row sm:items-stretch">
+            <button
+              type="button"
+              className="flex shrink-0 items-center justify-center gap-2 border-2 border-black bg-white px-4 py-3 text-xs font-bold uppercase tracking-wide sketch-shadow-sm transition-colors hover:bg-neutral-100 sm:w-[11rem] sm:rounded-md"
+            >
+              <LayoutGrid size={18} strokeWidth={2.5} className="shrink-0" />
+              <span className="whitespace-nowrap">Все категории</span>
+            </button>
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="flex-1 flex border-2 border-black bg-white sketch-shadow rounded-md overflow-hidden">
-            <div className="flex items-center justify-center px-3 border-r-2 border-black bg-neutral-100 shrink-0">
-              <Search size={18} strokeWidth={2.5} className="text-black" />
+            <div className="flex min-h-[3rem] min-w-0 flex-1 border-2 border-black bg-white sketch-shadow rounded-md overflow-hidden">
+              <div className="flex shrink-0 items-center justify-center border-r-2 border-black bg-neutral-100 px-3">
+                <Search size={18} strokeWidth={2.5} className="text-black" />
+              </div>
+              <input
+                type="search"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Найти в объявлениях"
+                className="sketch-input min-w-0 flex-1 border-0 bg-white px-3 py-3 text-sm placeholder:text-neutral-400 focus:ring-0"
+              />
+              <button
+                type="submit"
+                className="shrink-0 border-l-2 border-black bg-white px-4 py-3 text-sm font-bold text-blue-700 hover:bg-neutral-50 sm:px-6"
+              >
+                Найти
+              </button>
             </div>
-            <input
-              type="search"
-              placeholder="Поиск по названию..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="sketch-input flex-1 min-w-0 px-3 py-3 text-sm font-mono bg-white border-0 focus:ring-0 placeholder:text-neutral-400"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center justify-center gap-2 px-5 py-3 border-2 border-black rounded-md text-xs font-bold uppercase tracking-wide sketch-shadow transition-colors sm:shrink-0 ${
-              showFilters || activeFilters > 0
-                ? 'bg-black text-white'
-                : 'bg-white hover:bg-neutral-100'
-            }`}
-          >
-            <SlidersHorizontal size={18} strokeWidth={2.5} />
-            <span className="hidden sm:inline">Фильтры</span>
-            {activeFilters > 0 && (
-              <span className="min-w-[1.25rem] h-5 px-1 border-2 border-black bg-white text-black text-[10px] font-black flex items-center justify-center rounded-sm">
-                {activeFilters}
-              </span>
-            )}
-          </button>
-        </div>
+          </form>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <aside
-            className={`lg:w-72 shrink-0 ${showFilters ? 'block' : 'hidden lg:block'}`}
-          >
-            <div className="border-2 border-black bg-white sketch-shadow rounded-md p-4 lg:sticky lg:top-24">
-              <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-dashed border-black">
-                <h2 className="text-sm font-black uppercase tracking-wider">Фильтры</h2>
-                {activeFilters > 0 && (
+          {/* Только карточки в ленте; «Все категории» — вне flex-ряда (absolute), не тянет высоту ленты */}
+          <div className="relative w-full overflow-visible pb-1 sm:pb-0">
+            <div className="flex w-full gap-2 overflow-x-auto pb-1 [scrollbar-width:thin] sm:gap-2.5 sm:overflow-visible sm:pb-0">
+              {CATEGORY_RIBBON.map(cat => {
+                const active = selectedRibbonId === cat.id;
+                return (
                   <button
+                    key={cat.id}
                     type="button"
-                    onClick={() => {
-                      setCategory('all');
-                      setCondition('all');
-                    }}
-                    className="text-[10px] font-bold uppercase flex items-center gap-1 border-2 border-black px-2 py-1 rounded-sm bg-white hover:bg-neutral-100"
+                    onClick={() => setSelectedRibbonId(cat.id)}
+                    className={`group flex min-w-[4.75rem] shrink-0 flex-col overflow-hidden rounded-xl border-2 bg-white shadow-sm transition-transform sm:min-w-0 sm:flex-1 ${
+                      active ? 'border-primary' : 'border-black hover:-translate-y-0.5'
+                    }`}
                   >
-                    <X size={12} strokeWidth={3} /> Сброс
+                    <div className="relative aspect-[4/3] min-h-[4.25rem] w-full sm:min-h-[5rem]">
+                      <img
+                        src={cat.thumb}
+                        alt=""
+                        className="absolute inset-0 h-full w-full object-cover select-none"
+                        width={480}
+                        height={360}
+                        decoding="async"
+                        draggable={false}
+                      />
+                    </div>
+                    <div
+                      className={`flex items-center justify-center gap-1 border-t-2 border-dashed px-1.5 py-2 sm:px-2 sm:py-2.5 ${
+                        active
+                          ? 'border-primary/45 bg-primary'
+                          : 'border-black/30 bg-white'
+                      }`}
+                    >
+                      <span
+                        className={`text-center text-[9px] font-bold leading-tight sm:text-[10px] ${
+                          active ? 'text-gray-900' : 'text-black'
+                        }`}
+                      >
+                        {cat.label}
+                      </span>
+                    </div>
                   </button>
-                )}
-              </div>
-
-              <div className="mb-5">
-                <p className="text-[10px] font-black uppercase tracking-widest mb-2 border-l-4 border-black pl-2">
-                  Категория
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  {categories.map(c => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => setCategory(c.value)}
-                      className={filterBtnClass(category === c.value)}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-widest mb-2 border-l-4 border-black pl-2">
-                  Состояние
-                </p>
-                <div className="flex flex-col gap-1.5">
-                  {conditions.map(c => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => setCondition(c.value)}
-                      className={filterBtnClass(condition === c.value)}
-                    >
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          <main className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-4 text-xs font-bold uppercase tracking-wider border-2 border-black bg-white sketch-shadow-sm px-3 py-2 rounded-sm w-fit">
-              <span className="w-2 h-2 bg-black rounded-full" aria-hidden />
-              {filtered.length}{' '}
-              {filtered.length === 1 ? 'товар' : filtered.length < 5 ? 'товара' : 'товаров'}
+                );
+              })}
             </div>
 
-            {filtered.length === 0 ? (
-              <div className="border-2 border-black bg-white sketch-shadow rounded-md p-12 text-center">
-                <p className="font-black text-lg mb-2">Ничего не найдено</p>
-                <p className="text-sm text-neutral-600 font-mono">
-                  Попробуйте изменить фильтры или запрос
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-                {filtered.map(product => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    isFavorite={favorites.includes(product.id)}
-                    onToggleFavorite={toggleFavorite}
-                  />
-                ))}
-              </div>
-            )}
-          </main>
+            <button
+              type="button"
+              onClick={() => setSelectedRibbonId('all')}
+              aria-label="Все категории"
+              className="absolute left-full top-0 bottom-0 z-[2] ml-0.5 flex w-[4.75rem] flex-col items-center justify-center gap-2 rounded-l-none rounded-r-xl border-2 border-dashed border-black bg-white px-2 text-center shadow-sm hover:bg-neutral-50 sm:ml-1 sm:w-[5.25rem] sm:px-2.5"
+            >
+              <span className="text-[8px] font-bold leading-tight sm:text-[9px]">Все категории</span>
+              <ChevronDown size={18} strokeWidth={2.5} className="shrink-0 text-black" aria-hidden />
+            </button>
+          </div>
         </div>
+
+        <div className="mb-4 border-b-2 border-black pb-3">
+          <h2 className="text-xl font-black tracking-tight sm:text-2xl">Рекомендованные</h2>
+        </div>
+
+        {visibleListings.length === 0 ? (
+          <div className="border-2 border-black bg-white sketch-shadow rounded-md p-10 text-center">
+            <p className="font-black text-lg">Ничего не найдено</p>
+            <p className="mt-2 text-sm text-neutral-600">Измените запрос в поиске</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {visibleListings.map(product => (
+              <FleaMarketListingCard
+                key={product.id}
+                product={product}
+                inCart={cartProductIds.includes(product.id)}
+                onToggleCart={toggleCartItem}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
