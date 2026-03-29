@@ -1,14 +1,18 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { AuthSplitCardShell } from '../components/auth/AuthSplitCardShell';
 import { GoogleIcon } from '../components/auth/GoogleIcon';
 import { authInputClass } from '../components/auth/authFieldClasses';
 
-const LOGIN_IMAGE = '/media/images/original-54780b5d8c3bd316e079f55fc52e6baf.webp';
+const REGISTER_IMAGE = encodeURI(
+  '/media/images/original-34b544577285f74d3acfa8c67777a2ae (1).webp',
+);
 
-export default function LoginPage() {
+export default function RegisterPage() {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,21 +30,48 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthSplitCardShell imageSrc={LOGIN_IMAGE}>
-      <h1 className="mb-2 text-center text-xl font-bold font-heading leading-tight text-white sm:text-2xl md:text-[1.65rem]">
-        С возвращением!
+    <AuthSplitCardShell imageSrc={REGISTER_IMAGE}>
+      <h1 className="mb-4 text-center text-xl font-bold font-heading leading-tight text-white sm:mb-5 sm:text-2xl md:mb-5 md:text-[1.65rem]">
+        Регистрация
       </h1>
-      <p className="mb-4 text-center text-xs text-white/45 sm:mb-5 sm:text-sm">
-        Рады снова видеть вас в SmashMarket
-      </p>
 
       <form onSubmit={handleSubmit} className="space-y-2.5 md:space-y-2.5">
         <div>
-          <label htmlFor="login-email" className="mb-1 block text-xs font-medium text-white/85">
+          <label htmlFor="reg-first" className="mb-1 block text-xs font-medium text-white/85">
+            Имя
+          </label>
+          <input
+            id="reg-first"
+            type="text"
+            required
+            autoComplete="given-name"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            className={authInputClass}
+            placeholder="Иван"
+          />
+        </div>
+        <div>
+          <label htmlFor="reg-last" className="mb-1 block text-xs font-medium text-white/85">
+            Фамилия
+          </label>
+          <input
+            id="reg-last"
+            type="text"
+            required
+            autoComplete="family-name"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            className={authInputClass}
+            placeholder="Иванов"
+          />
+        </div>
+        <div>
+          <label htmlFor="reg-email" className="mb-1 block text-xs font-medium text-white/85">
             Email адрес
           </label>
           <input
-            id="login-email"
+            id="reg-email"
             type="email"
             required
             autoComplete="email"
@@ -51,15 +82,15 @@ export default function LoginPage() {
           />
         </div>
         <div>
-          <label htmlFor="login-password" className="mb-1 block text-xs font-medium text-white/85">
+          <label htmlFor="reg-password" className="mb-1 block text-xs font-medium text-white/85">
             Пароль
           </label>
           <div className="relative">
             <input
-              id="login-password"
+              id="reg-password"
               type={showPassword ? 'text' : 'password'}
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className={`${authInputClass} pr-10`}
@@ -80,8 +111,8 @@ export default function LoginPage() {
           type="submit"
           className="mt-0.5 flex w-full items-center justify-center gap-2 rounded-none bg-primary py-2.5 text-sm font-bold text-dark transition-colors hover:bg-primary-dark"
         >
-          <LogIn size={17} />
-          Войти
+          <UserPlus size={17} />
+          Зарегистрироваться
         </button>
       </form>
 
@@ -104,13 +135,11 @@ export default function LoginPage() {
       </button>
 
       <p className="mt-4 text-center text-xs text-white/45 sm:text-sm">
-        Нет аккаунта?{' '}
-        <Link to="/register" className="font-medium text-primary hover:underline">
-          Зарегистрироваться
+        Уже есть аккаунт?{' '}
+        <Link to="/login" className="font-medium text-primary hover:underline">
+          Войти
         </Link>
       </p>
-
-      <p className="mt-3 text-center text-[11px] text-white/30">Демо: любой email и пароль</p>
     </AuthSplitCardShell>
   );
 }

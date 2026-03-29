@@ -6,8 +6,8 @@ export default function CourtsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-dark mb-2">Залы Кишинёва</h1>
-        <p className="text-gray-500 flex items-center gap-1.5">
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Залы Кишинёва</h1>
+        <p className="text-gray-400 flex items-center gap-1.5">
           <MapPin size={16} />
           Все бадминтонные площадки города
         </p>

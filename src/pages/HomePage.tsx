@@ -59,9 +59,11 @@ export default function HomePage() {
               <span className="text-primary">экипировки</span>
             </h1>
 
-            <p className="text-base sm:text-lg text-white/50 mb-14 leading-relaxed font-light font-sans">
-              Крупнейшая бадминтон-барахолка Кишинёва: покупай, продавай, побеждай!
-            </p>
+            <div className="mb-14 max-w-full overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <p className="font-tagline w-max min-w-0 text-sm text-white whitespace-nowrap leading-tight tracking-wide [text-shadow:0_1px_2px_rgba(0,0,0,0.85),0_0_24px_rgba(0,0,0,0.35)] sm:text-base md:text-lg lg:text-xl">
+                Крупнейшая бадминтон-барахолка Кишинёва: покупай, продавай, побеждай!
+              </p>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-5">
               <Link
@@ -295,7 +297,7 @@ export default function HomePage() {
             <div className="space-y-4">
               {[
                 { title: 'Весенний Кубок Кишинёва', date: '15 апреля 2026', type: 'Одиночный', status: 'Регистрация открыта' },
-                { title: 'SmashHub Open', date: '3 мая 2026', type: 'Парный', status: 'Скоро' },
+                { title: 'SmashMarket Open', date: '3 мая 2026', type: 'Парный', status: 'Скоро' },
                 { title: 'Летний Чемпионат', date: '20 июня 2026', type: 'Смешанный', status: 'Скоро' },
               ].map((t, i) => (
                 <div key={i} className="group relative bg-white/[0.04] border border-white/[0.06] rounded-2xl p-6 hover:bg-white/[0.07] hover:border-primary/20 transition-all duration-300 cursor-pointer">

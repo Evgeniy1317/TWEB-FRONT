@@ -35,7 +35,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-dark mb-2">Профиль</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Профиль</h1>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 mb-6">
@@ -76,7 +76,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-dark mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
           <Heart size={18} className="text-red-500" />
           Избранное
         </h2>
@@ -98,7 +98,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="mb-6">
-        <h2 className="text-lg font-bold text-dark mb-4">История перетяжек</h2>
+        <h2 className="text-lg font-bold text-white mb-4">История перетяжек</h2>
         <div className="space-y-3">
           {stringingOrders.map(order => (
             <div key={order.id} className="bg-white rounded-xl border border-gray-100 p-4 sm:p-5">

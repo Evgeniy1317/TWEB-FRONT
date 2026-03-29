@@ -16,49 +16,55 @@ const categoryLabel: Record<Product['category'], string> = {
 
 export default function ProductCard({ product, isFavorite, onToggleFavorite }: ProductCardProps) {
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover border border-gray-100 group">
-      <div className="relative aspect-square overflow-hidden bg-gray-50">
+    <article className="group bg-white border-2 border-black rounded-md overflow-hidden sketch-shadow transition-transform duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_#000]">
+      <div className="relative aspect-square overflow-hidden bg-white border-b-2 border-black">
         <img
           src={product.image}
           alt={product.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover grayscale contrast-[1.05] group-hover:grayscale-0 transition-[filter] duration-300"
         />
         <button
+          type="button"
           onClick={() => onToggleFavorite(product.id)}
-          className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+          className="absolute top-2 right-2 w-9 h-9 border-2 border-black bg-white sketch-shadow-sm flex items-center justify-center rounded-sm hover:bg-neutral-100 transition-colors"
+          aria-label={isFavorite ? 'Убрать из избранного' : 'В избранное'}
         >
           <Heart
             size={18}
-            className={isFavorite ? 'text-red-500 fill-red-500' : 'text-gray-400'}
+            strokeWidth={2}
+            className={isFavorite ? 'text-black fill-black' : 'text-black'}
           />
         </button>
         {product.condition === 'used' && (
-          <span className="absolute top-3 left-3 px-2.5 py-1 bg-amber-400 text-amber-900 text-xs font-bold rounded-lg">
+          <span className="absolute top-2 left-2 px-2 py-0.5 border-2 border-black bg-white text-[10px] font-bold uppercase tracking-wide">
             Б/У
           </span>
         )}
         {product.condition === 'new' && (
-          <span className="absolute top-3 left-3 px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-lg">
+          <span className="absolute top-2 left-2 px-2 py-0.5 border-2 border-black bg-black text-white text-[10px] font-bold uppercase tracking-wide">
             Новое
           </span>
         )}
       </div>
 
-      <div className="p-4">
-        <p className="text-xs text-gray-400 uppercase tracking-wider font-medium mb-1">
+      <div className="p-3 sm:p-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500 mb-1 border-b border-dashed border-black/20 pb-1 inline-block">
           {categoryLabel[product.category]}
         </p>
-        <h3 className="font-semibold text-dark text-sm leading-tight mb-2 line-clamp-2">
-          {product.title}
-        </h3>
-        <p className="text-xs text-gray-500 mb-3 line-clamp-1">{product.description}</p>
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-primary-dark">{product.price} MDL</span>
-          <button className="px-3 py-1.5 bg-primary/10 text-primary-dark text-xs font-semibold rounded-lg hover:bg-primary/20 transition-colors">
+        <h3 className="font-bold text-sm leading-snug mb-2 line-clamp-2">{product.title}</h3>
+        <p className="text-xs text-neutral-600 mb-3 line-clamp-2 border-l-2 border-black pl-2">
+          {product.description}
+        </p>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <span className="text-base font-black tabular-nums">{product.price} MDL</span>
+          <button
+            type="button"
+            className="px-3 py-1.5 text-xs font-bold border-2 border-black bg-white sketch-shadow-sm rounded-sm hover:bg-black hover:text-white transition-colors"
+          >
             Подробнее
           </button>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

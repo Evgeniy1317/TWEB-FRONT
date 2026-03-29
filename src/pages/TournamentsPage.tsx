@@ -20,8 +20,8 @@ export default function TournamentsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-dark mb-2">Турниры</h1>
-        <p className="text-gray-500">Предстоящие соревнования и регистрация</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Турниры</h1>
+        <p className="text-gray-400">Предстоящие соревнования и регистрация</p>
       </div>
 
       <div className="space-y-4">
