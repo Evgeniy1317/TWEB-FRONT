@@ -5,12 +5,13 @@
   --font-heading: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   --font-display: 'Unbounded', 'Inter', system-ui, sans-serif;
   --font-distressed: 'Rubik Distressed', 'Inter', cursive;
+  --font-tagline: 'Russo One', 'Space Grotesk', system-ui, sans-serif;
   --color-primary: #00E676;
   --color-primary-dark: #00C853;
   --color-primary-light: #B9F6CA;
   --color-accent: #00BCD4;
-  --color-dark: #1a1a2e;
-  --color-dark-light: #2d2d44;
+  --color-dark: #0a0a0a;
+  --color-dark-light: #1f1f1f;
 }
 
 body {
@@ -22,6 +23,11 @@ body {
   font-weight: 400;
 }
 
+.font-tagline {
+  font-family: var(--font-tagline);
+  font-weight: 400;
+}
+
 .glass {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
@@ -30,14 +36,14 @@ body {
 }
 
 .glass-dark {
-  background: rgba(26, 26, 46, 0.85);
+  background: rgba(10, 10, 10, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .hero-gradient {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(135deg, #0a0a0a 0%, #121212 45%, #181818 100%);
 }
 
 .card-hover {
@@ -54,4 +60,21 @@ body {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.4); }
   50% { box-shadow: 0 0 0 8px rgba(0, 230, 118, 0); }
+}
+
+/* Sketching Kit / neubrutalist — барахолка */
+.sketch-shadow {
+  box-shadow: 4px 4px 0 0 #000;
+}
+.sketch-shadow-sm {
+  box-shadow: 3px 3px 0 0 #000;
+}
+.sketch-page {
+  font-family: ui-monospace, 'Cascadia Mono', 'Consolas', 'Courier New', Courier, monospace;
+  background: #e8e8e8;
+  color: #000;
+}
+.sketch-input:focus {
+  outline: 2px solid #000;
+  outline-offset: 2px;
 }

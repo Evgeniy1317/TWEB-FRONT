@@ -35,8 +35,8 @@ export default function StringingPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-dark mb-2">Перетяжка ракеток</h1>
-        <p className="text-gray-500">Оформите заказ и отслеживайте его статус</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Перетяжка ракеток</h1>
+        <p className="text-gray-400">Оформите заказ и отслеживайте его статус</p>
       </div>
 
       <div className="flex gap-2 mb-8 bg-gray-100 rounded-xl p-1 max-w-md">
