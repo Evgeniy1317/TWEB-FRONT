@@ -1,4 +1,11 @@
-export type ProductCategory = 'rackets' | 'shoes' | 'shuttlecocks' | 'accessories';
+export type ProductCategory =
+  | 'rackets'
+  | 'shoes'
+  | 'shuttlecocks'
+  | 'strings'
+  | 'bags'
+  | 'clothing'
+  | 'accessories';
 export type ProductCondition = 'new' | 'used';
 export type OrderStatus = 'received' | 'in_progress' | 'ready';
 export type UserRole = 'user' | 'master';

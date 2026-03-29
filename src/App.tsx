@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import MarketPage from './pages/MarketPage';
+import MarketListingDetailPage from './pages/MarketListingDetailPage';
 import StringingPage from './pages/StringingPage';
 import CourtsPage from './pages/CourtsPage';
 import TournamentsPage from './pages/TournamentsPage';
@@ -26,6 +27,7 @@ function AppShell() {
       >
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/market/listing/:id" element={<MarketListingDetailPage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/stringing" element={<StringingPage />} />
           <Route path="/courts" element={<CourtsPage />} />

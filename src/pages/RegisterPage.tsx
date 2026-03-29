@@ -4,7 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { AuthSplitCardShell } from '../components/auth/AuthSplitCardShell';
 import { GoogleIcon } from '../components/auth/GoogleIcon';
-import { authInputClass } from '../components/auth/authFieldClasses';
+import {
+  authInputClass,
+  getAuthEmailAriaInvalid,
+  getAuthEmailInputClass,
+} from '../components/auth/authFieldClasses';
 
 const REGISTER_IMAGE = encodeURI(
   '/media/images/original-34b544577285f74d3acfa8c67777a2ae (1).webp',
@@ -14,6 +18,7 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [emailShowValidation, setEmailShowValidation] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
@@ -77,8 +82,11 @@ export default function RegisterPage() {
             autoComplete="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className={authInputClass}
+            onFocus={() => setEmailShowValidation(false)}
+            onBlur={() => setEmailShowValidation(true)}
+            className={getAuthEmailInputClass(email, emailShowValidation)}
             placeholder="you@mail.md"
+            aria-invalid={getAuthEmailAriaInvalid(email, emailShowValidation)}
           />
         </div>
         <div>
