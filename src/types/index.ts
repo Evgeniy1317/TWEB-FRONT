@@ -5,7 +5,13 @@ export type ProductCategory =
   | 'strings'
   | 'bags'
   | 'clothing'
-  | 'accessories';
+  | 'accessories'
+  | 'grips'
+  | 'knee_braces'
+  | 'socks'
+  | 'nets_stands'
+  | 'court_inventory'
+  | 'other';
 export type ProductCondition = 'new' | 'used';
 export type OrderStatus = 'received' | 'in_progress' | 'ready';
 export type UserRole = 'user' | 'master';

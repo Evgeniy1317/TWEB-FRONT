@@ -11,6 +11,12 @@ const categoryLabel: Record<Product['category'], string> = {
   bags: 'Сумки и чехлы',
   clothing: 'Одежда',
   accessories: 'Аксессуары',
+  grips: 'Обмотки',
+  knee_braces: 'Тейпы и бандажи',
+  socks: 'Носки',
+  nets_stands: 'Сетки и стойки',
+  court_inventory: 'Инвентарь для зала',
+  other: 'Другое',
 };
 
 interface FleaMarketListingCardProps {
@@ -30,7 +36,7 @@ export default function FleaMarketListingCard({
         <img
           src={product.image}
           alt={product.title}
-          className="h-full w-full object-cover select-none"
+          className="absolute inset-0 h-full w-full object-cover select-none"
           width={400}
           height={400}
           decoding="async"
@@ -40,23 +46,22 @@ export default function FleaMarketListingCard({
         <button
           type="button"
           onClick={() => onToggleCart(product.id)}
-          className={`absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-full border shadow-md ring-1 transition hover:bg-white ${
+          className={`absolute right-2 top-2 z-[1] flex h-10 w-10 items-center justify-center rounded-full border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0 ${
             inCart
-              ? 'border-primary/60 bg-primary/15 text-primary ring-primary/20 hover:text-primary'
-              : 'border-gray-200/90 bg-white/95 text-gray-700 ring-gray-100 hover:text-primary'
+              ? 'border-primary bg-primary'
+              : 'border-gray-200/90 bg-white/95 hover:bg-white'
           }`}
           aria-label={inCart ? 'Убрать из корзины' : 'В корзину'}
+          aria-pressed={inCart}
         >
           <img
             src={CART_ICON_SRC}
             alt=""
-            width={18}
-            height={18}
+            width={64}
+            height={64}
             decoding="async"
             draggable={false}
-            className={`h-[18px] w-[18px] object-contain select-none pointer-events-none ${
-              inCart ? 'opacity-100' : 'opacity-[0.72]'
-            }`}
+            className="relative z-[1] h-[22px] w-[22px] max-w-none object-contain object-center select-none pointer-events-none"
             aria-hidden
           />
         </button>
