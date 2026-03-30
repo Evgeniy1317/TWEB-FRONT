@@ -15,6 +15,12 @@ const categoryLabel: Record<Product['category'], string> = {
   bags: 'Сумки и чехлы',
   clothing: 'Одежда',
   accessories: 'Аксессуары',
+  grips: 'Обмотки',
+  knee_braces: 'Тейпы и бандажи',
+  socks: 'Носки',
+  nets_stands: 'Сетки и стойки',
+  court_inventory: 'Инвентарь для зала',
+  other: 'Другое',
 };
 
 export default function ProductCard({ product, isFavorite, onToggleFavorite }: ProductCardProps) {

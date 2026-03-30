@@ -9,16 +9,16 @@ const shellOuter =
 
 const shellInner = 'relative z-[1] flex w-full min-h-0 max-h-full justify-center overflow-hidden';
 
-/** Высота только рамки-карточки; колонки md — одна строка сетки, обе одинаковой высоты */
+/** Высота рамки-карточки: меньше вьюпорта по вертикали; колонки md — одна строка сетки */
 const cardGrid =
   'flex w-full flex-col overflow-hidden border border-white/12 shadow-2xl shadow-black/40 rounded-none ' +
-  'h-[calc(100dvh-96px)] min-h-[calc(100dvh-96px)] max-h-[calc(100dvh-96px)] ' +
-  'max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] ' +
+  'h-[calc(100dvh-220px)] min-h-[calc(100dvh-220px)] max-h-[calc(100dvh-220px)] ' +
+  'max-w-[min(100%,24rem)] sm:max-w-[min(100%,28rem)] ' +
   'md:grid md:grid-cols-2 md:grid-rows-1 md:items-stretch ' +
-  'md:h-[calc(100dvh-80px)] md:min-h-[calc(100dvh-80px)] md:max-h-[calc(100dvh-80px)] ' +
-  'md:max-w-[min(94vw,720px)] lg:max-w-[min(94vw,780px)]';
+  'md:h-[calc(100dvh-200px)] md:min-h-[calc(100dvh-200px)] md:max-h-[calc(100dvh-200px)] ' +
+  'md:max-w-[min(94vw,800px)] lg:max-w-[min(94vw,860px)]';
 
-/** Фото без отступов: заполняет ячейку, обрезка через object-cover */
+/** Фото без отступов: заполняет ячейку (object-cover) */
 const imagePane =
   'relative m-0 w-full min-w-0 shrink-0 overflow-hidden bg-black p-0 ' +
   'h-[min(32dvh,200px)] ' +

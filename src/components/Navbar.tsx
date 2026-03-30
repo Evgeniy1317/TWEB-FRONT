@@ -49,18 +49,20 @@ export default function Navbar() {
   const isHome = location.pathname === '/';
   const isMarket = location.pathname === '/market' || location.pathname.startsWith('/market/');
   const barVisible = !isHome || scrolled;
+  /** Главная у самого верха: без сплошной подложки шапки и без «пилюли» у ссылок */
+  const homeAtTop = isHome && !scrolled;
 
   mobileOpenRef.current = mobileOpen;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
+    const onScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
-    setScrolled(window.scrollY > 10);
+    setScrolled(window.scrollY > 8);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -118,8 +120,8 @@ export default function Navbar() {
       }`}
     >
       <div
-        className={`absolute inset-0 glass-dark pointer-events-none transition-opacity duration-150 ease-out ${
-          barVisible ? 'opacity-100 shadow-lg' : 'opacity-0'
+        className={`absolute inset-0 bg-dark pointer-events-none transition-opacity duration-200 ease-out border-b border-white/[0.06] ${
+          barVisible ? 'opacity-100 shadow-lg shadow-black/40' : 'opacity-0 border-transparent shadow-none'
         }`}
       />
       <div className="relative px-4 sm:px-6">
@@ -139,38 +141,63 @@ export default function Navbar() {
           </div>
 
           {/* Center — nav + lang */}
-          <div className="hidden md:flex items-center bg-white/[0.06] rounded-none px-2 py-2">
+          <div
+            className={`hidden md:flex items-center gap-2.5 rounded-none px-2.5 py-2 transition-[background-color,border-color,box-shadow] duration-200 ${
+              homeAtTop
+                ? 'border-transparent bg-transparent'
+                : 'border border-white/10 bg-dark-light'
+            }`}
+          >
             {navLinks.map(({ to, label, icon: Icon }) => {
               const isActive = location.pathname === to;
               return (
                 <Link
                   key={to}
                   to={to}
-                  className={`flex items-center gap-2.5 px-6 py-2.5 rounded-none text-[15px] font-medium transition-all
-                    ${isActive
-                      ? 'bg-white/15 text-white'
-                      : 'text-white hover:bg-white/10'
-                    }`}
+                  className="group flex items-center gap-2 rounded-sm px-7 py-2 text-[15px] font-medium transition-colors duration-150 hover:bg-transparent"
                 >
-                  <Icon size={18} />
-                  {label}
+                  <Icon
+                    size={18}
+                    className={`shrink-0 transition-colors duration-150 ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-white group-hover:text-primary'
+                    }`}
+                    aria-hidden
+                  />
+                  <span
+                    className={
+                      isActive
+                        ? 'text-primary'
+                        : 'text-white transition-colors duration-150 group-hover:text-primary'
+                    }
+                  >
+                    {label}
+                  </span>
                 </Link>
               );
             })}
 
-            <div className="w-px h-5 bg-white/15 mx-2" />
+            <div className="mx-0.5 h-5 w-px shrink-0 bg-white/12" aria-hidden />
 
             <div ref={langRef} className="relative">
               <button
+                type="button"
                 onClick={() => setLangOpen(!langOpen)}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-none text-[15px] font-medium text-white hover:bg-white/10 transition-all"
+                className="group flex items-center gap-2 rounded-sm px-5 py-2 text-[15px] font-medium transition-colors duration-150 hover:bg-transparent"
               >
-                <Globe size={18} />
-                <span className="uppercase text-sm tracking-wider">{currentLang}</span>
+                <Globe
+                  size={18}
+                  className="shrink-0 text-white transition-colors duration-150 group-hover:text-primary"
+                  aria-hidden
+                />
+                <span className="uppercase text-sm tracking-wider text-white transition-colors duration-150 group-hover:text-primary">
+                  {currentLang}
+                </span>
               </button>
 
               {langOpen && (
-                <div className="absolute right-0 mt-4 w-40 rounded-none glass-dark shadow-xl overflow-hidden border border-white/10">
+                <div className="absolute right-0 mt-4 w-40 rounded-none bg-dark shadow-xl overflow-hidden border border-white/10">
                   {languages.map(({ code, label }) => (
                     <button
                       key={code}
@@ -193,10 +220,22 @@ export default function Navbar() {
           <div className="flex-1 flex items-center justify-end gap-3">
             <Link
               to={isAuthenticated ? '/profile' : '/login'}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-none text-[15px] font-medium text-white hover:bg-white/10 transition-all"
+              className="group flex items-center gap-2 px-6 py-2.5 rounded-none text-[15px] font-medium transition-colors duration-150 hover:bg-transparent"
             >
-              {isAuthenticated ? <User size={18} /> : <LogIn size={18} />}
-              <span className="hidden sm:inline">
+              {isAuthenticated ? (
+                <User
+                  size={18}
+                  className="shrink-0 text-white transition-colors duration-150 group-hover:text-primary"
+                  aria-hidden
+                />
+              ) : (
+                <LogIn
+                  size={18}
+                  className="shrink-0 text-white transition-colors duration-150 group-hover:text-primary"
+                  aria-hidden
+                />
+              )}
+              <span className="hidden sm:inline text-white transition-colors duration-150 group-hover:text-primary">
                 {isAuthenticated ? 'Профиль' : 'Войти'}
               </span>
             </Link>
@@ -222,7 +261,7 @@ export default function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden glass-dark border-t border-white/5">
+        <div className="md:hidden border-t border-white/10 bg-dark">
           <div className="max-w-[1440px] mx-auto px-8 py-4 space-y-1">
             {navLinks.map(({ to, label, icon: Icon }) => {
               const isActive = location.pathname === to;
@@ -231,14 +270,26 @@ export default function Navbar() {
                   key={to}
                   to={to}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-none text-sm font-medium transition-all
-                    ${isActive
-                      ? 'bg-white/15 text-white'
-                      : 'text-white hover:bg-white/10'
-                    }`}
+                  className="group flex items-center gap-3 rounded-sm px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-transparent"
                 >
-                  <Icon size={18} />
-                  {label}
+                  <Icon
+                    size={18}
+                    className={`shrink-0 transition-colors duration-150 ${
+                      isActive
+                        ? 'text-primary'
+                        : 'text-white group-hover:text-primary'
+                    }`}
+                    aria-hidden
+                  />
+                  <span
+                    className={
+                      isActive
+                        ? 'text-primary'
+                        : 'text-white transition-colors duration-150 group-hover:text-primary'
+                    }
+                  >
+                    {label}
+                  </span>
                 </Link>
               );
             })}

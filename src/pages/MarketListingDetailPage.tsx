@@ -1,8 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { products } from '../data/mockData';
+import type { Product } from '../types';
 
-const categoryLabel = {
+const categoryLabel: Record<Product['category'], string> = {
   rackets: 'Ракетки',
   shoes: 'Обувь',
   shuttlecocks: 'Воланы',
@@ -10,7 +11,13 @@ const categoryLabel = {
   bags: 'Сумки и чехлы',
   clothing: 'Одежда',
   accessories: 'Аксессуары',
-} as const;
+  grips: 'Обмотки',
+  knee_braces: 'Тейпы и бандажи',
+  socks: 'Носки',
+  nets_stands: 'Сетки и стойки',
+  court_inventory: 'Инвентарь для зала',
+  other: 'Другое',
+};
 
 export default function MarketListingDetailPage() {
   const { id } = useParams<{ id: string }>();
