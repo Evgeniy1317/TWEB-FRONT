@@ -1,6 +1,13 @@
 import type { Product, Court, Tournament, StringingOrder, AppUser } from '../types';
 
-export const products: Product[] = [
+/** Для теста галереи: 6 дополнительных фото у каждого объявления (главное — `image`) */
+export function demoExtraImagesForProduct(productId: number): string[] {
+  return [1, 2, 3, 4, 5, 6].map(
+    n => `https://picsum.photos/seed/extra-p${productId}-${n}/400/400`,
+  );
+}
+
+const productsSeed: Product[] = [
   {
     id: 1,
     title: 'Yonex Astrox 88D Pro',
@@ -8,6 +15,7 @@ export const products: Product[] = [
     category: 'rackets',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p1/400/400',
+    colorLabel: 'Чёрный / зелёный',
     description: 'Профессиональная ракетка для атакующей игры',
   },
   {
@@ -17,6 +25,7 @@ export const products: Product[] = [
     category: 'rackets',
     condition: 'used',
     image: 'https://picsum.photos/seed/smash-p2/400/400',
+    colorLabel: 'Чёрный',
     description: 'Лёгкая ракетка, б/у в отличном состоянии',
   },
   {
@@ -26,7 +35,10 @@ export const products: Product[] = [
     category: 'shoes',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p3/400/400',
+    colorLabel: 'Белый / синий',
     description: 'Кроссовки для бадминтона с амортизацией',
+    gender: 'mens',
+    sizeLabel: '42',
   },
   {
     id: 4,
@@ -35,6 +47,7 @@ export const products: Product[] = [
     category: 'rackets',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p4/400/400',
+    colorLabel: 'Красный',
     description: 'Баланс скорости и мощности',
   },
   {
@@ -44,6 +57,7 @@ export const products: Product[] = [
     category: 'shuttlecocks',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p5/400/400',
+    colorLabel: 'Белый',
     description: 'Пластиковые воланы, упаковка 6 шт.',
   },
   {
@@ -53,7 +67,10 @@ export const products: Product[] = [
     category: 'shoes',
     condition: 'used',
     image: 'https://picsum.photos/seed/smash-p6/400/400',
+    colorLabel: 'Чёрный',
     description: 'Б/У кроссовки, размер 43',
+    gender: 'mens',
+    sizeLabel: '43',
   },
   {
     id: 7,
@@ -62,6 +79,7 @@ export const products: Product[] = [
     category: 'shuttlecocks',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p7/400/400',
+    colorLabel: 'Белый',
     description: 'Перьевые воланы для соревнований',
   },
   {
@@ -71,6 +89,7 @@ export const products: Product[] = [
     category: 'strings',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p8/400/400',
+    colorLabel: 'Натуральный',
     description: 'Популярные струны для перетяжки',
   },
   {
@@ -80,6 +99,7 @@ export const products: Product[] = [
     category: 'bags',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p9/400/400',
+    colorLabel: 'Чёрный',
     description: 'На 3 ракетки, отдел для обуви',
   },
   {
@@ -89,7 +109,10 @@ export const products: Product[] = [
     category: 'clothing',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p10/400/400',
+    colorLabel: 'Белый',
     description: 'Дышащая ткань, размер M',
+    gender: 'unisex',
+    sizeLabel: 'M',
   },
   {
     id: 11,
@@ -98,6 +121,7 @@ export const products: Product[] = [
     category: 'accessories',
     condition: 'used',
     image: 'https://picsum.photos/seed/smash-p11/400/400',
+    colorLabel: 'Серый',
     description: 'Пара, б/у аккуратно',
   },
   {
@@ -107,6 +131,7 @@ export const products: Product[] = [
     category: 'rackets',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p12/400/400',
+    colorLabel: 'Чёрный',
     description: 'Скоростная серия, новая',
   },
   {
@@ -116,6 +141,7 @@ export const products: Product[] = [
     category: 'grips',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p13/400/400',
+    colorLabel: 'Чёрный',
     description: 'Упаковка 3 шт., мягкая на ощупь',
   },
   {
@@ -125,6 +151,7 @@ export const products: Product[] = [
     category: 'knee_braces',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p14/400/400',
+    colorLabel: 'Бежевый',
     description: 'Тейп на отрез, бандаж универсальный',
   },
   {
@@ -134,7 +161,10 @@ export const products: Product[] = [
     category: 'socks',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p15/400/400',
+    colorLabel: 'Белый',
     description: 'Набор 2 пары, дышащий хлопок',
+    gender: 'unisex',
+    sizeLabel: '39-42',
   },
   {
     id: 16,
@@ -143,6 +173,7 @@ export const products: Product[] = [
     category: 'nets_stands',
     condition: 'used',
     image: 'https://picsum.photos/seed/smash-p16/400/400',
+    colorLabel: 'Чёрный',
     description: 'Стандартный размер, б/у в хорошем состоянии',
   },
   {
@@ -152,6 +183,7 @@ export const products: Product[] = [
     category: 'court_inventory',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p17/400/400',
+    colorLabel: 'Оранжевый',
     description: 'Для разминки и разметки корта',
   },
   {
@@ -161,9 +193,86 @@ export const products: Product[] = [
     category: 'other',
     condition: 'new',
     image: 'https://picsum.photos/seed/smash-p18/400/400',
+    colorLabel: 'Чёрный',
     description: 'Универсальное крепление',
   },
+  {
+    id: 19,
+    title: 'Li-Ning Saga 2 Lite женские',
+    price: 2100,
+    category: 'shoes',
+    condition: 'new',
+    image: 'https://picsum.photos/seed/smash-p19/400/400',
+    colorLabel: 'Розовый',
+    description: 'Лёгкие кроссовки, женская коллекция',
+    gender: 'womens',
+    sizeLabel: '39',
+  },
+  {
+    id: 20,
+    title: 'Юбка спортивная Victor',
+    price: 520,
+    category: 'clothing',
+    condition: 'new',
+    image: 'https://picsum.photos/seed/smash-p20/400/400',
+    colorLabel: 'Чёрный',
+    description: 'Размер S, для тренировок',
+    gender: 'womens',
+    sizeLabel: 'S',
+  },
 ];
+
+export const products: Product[] = productsSeed.map(p => ({
+  ...p,
+  extraImages: demoExtraImagesForProduct(p.id),
+}));
+
+export type MarketSellerSocialLink = {
+  label: string;
+  href: string;
+};
+
+export type MarketSellerContact = {
+  name: string;
+  /** Телефон для отображения и tel:-ссылки */
+  phone?: string;
+  links: MarketSellerSocialLink[];
+};
+
+const DEFAULT_MARKET_SELLER: MarketSellerContact = {
+  name: 'Продавец TWEB',
+  phone: '+373 69 000 111',
+  links: [
+    { label: 'Telegram', href: 'https://t.me/' },
+    { label: 'Instagram', href: 'https://www.instagram.com/' },
+    { label: 'Viber', href: 'https://www.viber.com/' },
+    { label: 'Facebook', href: 'https://www.facebook.com/' },
+    { label: 'WhatsApp', href: 'https://wa.me/37369000111' },
+  ],
+};
+
+const MARKET_SELLERS_BY_PRODUCT_ID: Partial<Record<number, MarketSellerContact>> = {
+  1: {
+    name: 'Алексей М.',
+    phone: '+373 69 123 456',
+    links: [
+      { label: 'Telegram', href: 'https://t.me/' },
+      { label: 'Instagram', href: 'https://www.instagram.com/' },
+      { label: 'Facebook', href: 'https://www.facebook.com/' },
+      { label: 'WhatsApp', href: 'https://wa.me/37369123456' },
+    ],
+  },
+  /** Пример: только телефон */
+  18: {
+    name: 'Марина',
+    phone: '+373 69 777 888',
+    links: [],
+  },
+};
+
+export function getMarketSellerForProduct(productId: number): MarketSellerContact {
+  return MARKET_SELLERS_BY_PRODUCT_ID[productId] ?? DEFAULT_MARKET_SELLER;
+}
 
 export const courts: Court[] = [
   {

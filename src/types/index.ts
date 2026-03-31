@@ -13,6 +13,8 @@ export type ProductCategory =
   | 'court_inventory'
   | 'other';
 export type ProductCondition = 'new' | 'used';
+/** Для обуви, одежды, носков */
+export type ProductGender = 'mens' | 'womens' | 'unisex';
 export type OrderStatus = 'received' | 'in_progress' | 'ready';
 export type UserRole = 'user' | 'master';
 
@@ -24,6 +26,14 @@ export interface Product {
   condition: ProductCondition;
   image: string;
   description: string;
+  /** Пол — для фильтров в категориях обувь / одежда / носки */
+  gender?: ProductGender;
+  /** Размер (EU для обуви, S–XL для одежды, диапазон для носков) */
+  sizeLabel?: string;
+  /** Дополнительные фото (не больше 6); главное фото — всегда `image` */
+  extraImages?: string[];
+  /** Цвет товара — один вариант, задаёт продавец */
+  colorLabel?: string;
 }
 
 export interface Court {
