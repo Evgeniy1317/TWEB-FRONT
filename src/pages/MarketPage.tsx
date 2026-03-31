@@ -1,6 +1,11 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { ChevronDown, LayoutGrid, Search, X } from 'lucide-react';
 import FleaMarketListingCard from '../components/FleaMarketListingCard';
+import MarketFiltersPanel, {
+  type MarketConditionFilter,
+  type MarketGenderFilter,
+  type MarketSortOption,
+} from '../components/MarketFiltersPanel';
 import { products } from '../data/mockData';
 
 function shuffle<T>(items: T[]): T[] {
@@ -22,6 +27,40 @@ type RibbonItem = {
 const categorySelectedShadowClass = 'shadow-[3px_3px_0_0_#00E676]';
 
 const IMG = (name: string) => `/media/images/${name}`;
+
+/** undraw empty cart — имя файла со пробелом и скобками */
+const MARKET_EMPTY_ILLU = `/media/images/${encodeURIComponent('undraw_empty-cart_574u (1).svg')}`;
+
+function MarketListingsEmpty({ hint }: { hint: 'filters' | 'search' }) {
+  return (
+    <div className="relative overflow-hidden border-2 border-black bg-white sketch-shadow rounded-md">
+      <div className="px-6 py-10 sm:px-10 sm:py-14">
+        <div className="mx-auto flex max-w-lg flex-col items-center text-center">
+          <div className="mb-6 flex w-full justify-center sm:mb-8">
+            <img
+              src={MARKET_EMPTY_ILLU}
+              alt=""
+              className="h-36 w-auto max-w-[min(100%,280px)] object-contain sm:h-44"
+              width={280}
+              height={220}
+              decoding="async"
+              draggable={false}
+            />
+          </div>
+          <h3 className="font-black tracking-tight text-gray-900 text-xl sm:text-2xl">
+            Ничего не найдено
+          </h3>
+          <div className="mx-auto mt-4 h-0.5 w-14 bg-primary" aria-hidden />
+          <p className="mt-5 max-w-md text-pretty text-sm leading-relaxed text-neutral-600 sm:text-[15px]">
+            {hint === 'filters'
+              ? 'Измените фильтры или запрос в поиске'
+              : 'Измените запрос в поиске'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /** Шесть карточек категорий; «Все категории» — отдельный блок справа */
 const CATEGORY_RIBBON: RibbonItem[] = [
@@ -49,8 +88,38 @@ export default function MarketPage() {
   const [selectedRibbonId, setSelectedRibbonId] = useState<string>('all');
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const [cartProductIds, setCartProductIds] = useState<number[]>([]);
+  const [filterPriceMin, setFilterPriceMin] = useState('');
+  const [filterPriceMax, setFilterPriceMax] = useState('');
+  const [filterCondition, setFilterCondition] = useState<MarketConditionFilter>('all');
+  const [filterSort, setFilterSort] = useState<MarketSortOption>('default');
+  const [filterGender, setFilterGender] = useState<MarketGenderFilter>('all');
+  const [filterSize, setFilterSize] = useState('');
 
   const shuffledProducts = useMemo(() => shuffle([...products]), []);
+
+  useEffect(() => {
+    setFilterGender('all');
+    setFilterSize('');
+  }, [selectedRibbonId]);
+
+  const resetMarketFilters = useCallback(() => {
+    setFilterPriceMin('');
+    setFilterPriceMax('');
+    setFilterCondition('all');
+    setFilterSort('default');
+    setFilterGender('all');
+    setFilterSize('');
+  }, []);
+
+  const showAllCategories = useCallback(() => {
+    setSelectedRibbonId('all');
+    setCategoryPickerOpen(false);
+  }, []);
+
+  const applyQuickPriceRange = useCallback((min: number, max: number | null) => {
+    setFilterPriceMin(String(min));
+    setFilterPriceMax(max === null ? '' : String(max));
+  }, []);
 
   const visibleListings = useMemo(() => {
     let list =
@@ -58,12 +127,67 @@ export default function MarketPage() {
         ? shuffledProducts
         : shuffledProducts.filter(p => p.category === selectedRibbonId);
     const q = search.trim().toLowerCase();
-    if (!q) return list;
-    return list.filter(
-      p =>
-        p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
-    );
-  }, [shuffledProducts, search, selectedRibbonId]);
+    if (q) {
+      list = list.filter(
+        p =>
+          p.title.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
+      );
+    }
+
+    const minN = filterPriceMin.trim() === '' ? null : Number.parseInt(filterPriceMin, 10);
+    const maxN = filterPriceMax.trim() === '' ? null : Number.parseInt(filterPriceMax, 10);
+    if (minN !== null && !Number.isNaN(minN)) {
+      list = list.filter(p => p.price >= minN);
+    }
+    if (maxN !== null && !Number.isNaN(maxN)) {
+      list = list.filter(p => p.price <= maxN);
+    }
+    if (filterCondition !== 'all') {
+      list = list.filter(p => p.condition === filterCondition);
+    }
+
+    const isApparelCategory =
+      selectedRibbonId === 'shoes' ||
+      selectedRibbonId === 'clothing' ||
+      selectedRibbonId === 'socks';
+    if (isApparelCategory) {
+      if (filterGender !== 'all') {
+        list = list.filter(p => {
+          const g = p.gender ?? 'unisex';
+          if (filterGender === 'mens') return g === 'mens' || g === 'unisex';
+          if (filterGender === 'womens') return g === 'womens' || g === 'unisex';
+          return true;
+        });
+      }
+      const sizeQ = filterSize.trim();
+      if (sizeQ !== '') {
+        list = list.filter(p => p.sizeLabel === sizeQ);
+      }
+    }
+
+    const sorted = [...list];
+    if (filterSort === 'price_asc') {
+      sorted.sort((a, b) => a.price - b.price);
+    } else if (filterSort === 'price_desc') {
+      sorted.sort((a, b) => b.price - a.price);
+    }
+    return sorted;
+  }, [
+    shuffledProducts,
+    search,
+    selectedRibbonId,
+    filterPriceMin,
+    filterPriceMax,
+    filterCondition,
+    filterSort,
+    filterGender,
+    filterSize,
+  ]);
+
+  const apparelFilterCategory =
+    selectedRibbonId === 'shoes' || selectedRibbonId === 'clothing' || selectedRibbonId === 'socks'
+      ? (selectedRibbonId as 'shoes' | 'clothing' | 'socks')
+      : null;
 
   const toggleCartItem = (id: number) => {
     setCartProductIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
@@ -142,17 +266,17 @@ export default function MarketPage() {
                       setSelectedRibbonId(cat.id);
                       setCategoryPickerOpen(false);
                     }}
-                    className={`group flex min-w-[4.75rem] shrink-0 flex-col overflow-hidden rounded-xl border-2 border-black bg-white transition-[transform,box-shadow] duration-200 sm:min-w-0 sm:flex-1 ${
+                    className={`flex min-w-[4.75rem] shrink-0 flex-col overflow-hidden rounded-xl border-2 border-black bg-white transition-[transform,box-shadow] duration-200 sm:min-w-0 sm:flex-1 ${
                       active
                         ? `${categorySelectedShadowClass} hover:-translate-y-0.5`
                         : 'sketch-shadow-sm hover:-translate-y-0.5'
                     }`}
                   >
-                    <div className="grid aspect-[4/3] min-h-[4.25rem] w-full place-items-center overflow-hidden bg-neutral-50 p-3 sm:min-h-[5rem] sm:p-3.5">
+                    <div className="grid aspect-[4/3] min-h-[4.25rem] w-full place-items-center overflow-hidden bg-white p-2 sm:min-h-[5rem] sm:p-2.5">
                       <img
                         src={cat.thumb}
                         alt=""
-                        className="min-h-0 min-w-0 max-h-full max-w-full object-contain object-center select-none"
+                        className="min-h-0 min-w-0 max-h-full max-w-full object-contain object-center mix-blend-multiply select-none"
                         width={480}
                         height={360}
                         decoding="async"
@@ -216,17 +340,17 @@ export default function MarketPage() {
                           key={cat.id}
                           type="button"
                           onClick={() => selectCategoryFromPicker(cat.id)}
-                          className={`group flex min-w-0 w-full flex-col overflow-hidden rounded-xl border-2 border-black bg-white transition-[transform,box-shadow] duration-200 ease-out motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
+                          className={`flex min-w-0 w-full flex-col overflow-hidden rounded-xl border-2 border-black bg-white transition-[transform,box-shadow] duration-200 ease-out motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${
                             active
                               ? `${categorySelectedShadowClass} hover:-translate-y-0.5`
-                              : 'sketch-shadow-sm hover:-translate-y-0.5 hover:bg-neutral-50/90'
+                              : 'sketch-shadow-sm hover:-translate-y-0.5'
                           }`}
                         >
-                          <div className="grid aspect-[4/3] min-h-[2.75rem] w-full place-items-center overflow-hidden bg-neutral-50 p-2.5 sm:min-h-[3.25rem] sm:p-3">
+                          <div className="grid aspect-[4/3] min-h-[2.75rem] w-full place-items-center overflow-hidden bg-white p-2 sm:min-h-[3.25rem] sm:p-2.5">
                             <img
                               src={cat.thumb}
                               alt=""
-                              className="min-h-0 min-w-0 max-h-full max-w-full object-contain object-center select-none transition-[filter] duration-150 group-hover:brightness-[0.96]"
+                              className="min-h-0 min-w-0 max-h-full max-w-full object-contain object-center mix-blend-multiply select-none"
                               width={480}
                               height={360}
                               decoding="async"
@@ -248,27 +372,46 @@ export default function MarketPage() {
           </div>
         </div>
 
-        <div className="mb-4 border-b-2 border-black pb-3">
-          <h2 className="text-xl font-black tracking-tight sm:text-2xl">Рекомендованные</h2>
+        <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,17.5rem)_1fr] lg:items-start lg:gap-8">
+          <MarketFiltersPanel
+            allCategoriesActive={selectedRibbonId === 'all'}
+            priceMin={filterPriceMin}
+            priceMax={filterPriceMax}
+            onPriceMinChange={setFilterPriceMin}
+            onPriceMaxChange={setFilterPriceMax}
+            condition={filterCondition}
+            onConditionChange={setFilterCondition}
+            sortBy={filterSort}
+            onSortChange={setFilterSort}
+            onQuickRange={applyQuickPriceRange}
+            onReset={resetMarketFilters}
+            onShowAllCategories={showAllCategories}
+            apparelFilterCategory={apparelFilterCategory}
+            gender={filterGender}
+            onGenderChange={setFilterGender}
+            sizeFilter={filterSize}
+            onSizeFilterChange={setFilterSize}
+          />
+          <div className="min-w-0">
+            <div className="mb-4 border-b-2 border-black pb-3">
+              <h2 className="text-xl font-black tracking-tight sm:text-2xl">Рекомендованные</h2>
+            </div>
+            {visibleListings.length === 0 ? (
+              <MarketListingsEmpty hint="filters" />
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {visibleListings.map(product => (
+                  <FleaMarketListingCard
+                    key={product.id}
+                    product={product}
+                    inCart={cartProductIds.includes(product.id)}
+                    onToggleCart={toggleCartItem}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-
-        {visibleListings.length === 0 ? (
-          <div className="border-2 border-black bg-white sketch-shadow rounded-md p-10 text-center">
-            <p className="font-black text-lg">Ничего не найдено</p>
-            <p className="mt-2 text-sm text-neutral-600">Измените запрос в поиске</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {visibleListings.map(product => (
-              <FleaMarketListingCard
-                key={product.id}
-                product={product}
-                inCart={cartProductIds.includes(product.id)}
-                onToggleCart={toggleCartItem}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );
