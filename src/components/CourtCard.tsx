@@ -1,54 +1,82 @@
-import { MapPin, Clock, Phone, User } from 'lucide-react';
+import { Clock3, MapPin, Phone, UserRound } from 'lucide-react';
 import type { Court } from '../types';
 
 interface CourtCardProps {
   court: Court;
 }
 
+function splitHours(hours: string) {
+  const parts = hours.split(',').map(part => part.trim()).filter(Boolean);
+
+  if (parts.length >= 2) {
+    return parts.map(part => {
+      const [label, value] = part.split(': ');
+      return { label, value: value ?? '' };
+    });
+  }
+
+  return [{ label: 'График', value: hours }];
+}
+
 export default function CourtCard({ court }: CourtCardProps) {
-  const courtLabel =
-    court.courts === 1 ? 'корт' : court.courts < 5 ? 'корта' : 'кортов';
+  const courtLabel = court.courts === 1 ? 'корт' : court.courts < 5 ? 'корта' : 'кортов';
+  const hoursRows = splitHours(court.hours);
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm card-hover border border-gray-100">
-      <div className="relative h-48 overflow-hidden">
-        <img
-          src={court.image}
-          alt={court.name}
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-        <div className="absolute bottom-3 left-4 right-4">
-          <h3 className="text-white font-bold text-lg">{court.name}</h3>
-          <p className="text-white/80 text-xs flex items-center gap-1 mt-0.5">
-            <MapPin size={12} />
-            {court.address}
-          </p>
-        </div>
-        <span className="absolute top-3 right-3 px-2.5 py-1 bg-primary text-white text-xs font-bold rounded-lg">
+    <article className="overflow-hidden rounded-[1.35rem] border-2 border-black bg-white text-black sketch-shadow">
+      <div className="relative h-64 overflow-hidden border-b-2 border-black bg-neutral-200">
+        <img src={court.image} alt={court.name} className="h-full w-full object-cover" />
+        <span className="absolute right-3 top-3 border-2 border-black bg-primary px-3 py-1 text-xs font-black text-black shadow-[2px_2px_0_0_#000]">
           {court.courts} {courtLabel}
         </span>
       </div>
 
-      <div className="p-4 space-y-3">
-        <div className="flex items-start gap-2.5 text-sm text-gray-600">
-          <Clock size={16} className="text-primary mt-0.5 shrink-0" />
-          <span>{court.hours}</span>
+      <div className="space-y-4 p-5 sm:p-6">
+        <div>
+          <h3 className="text-2xl font-black tracking-tight">{court.name}</h3>
         </div>
-        <div className="flex items-center gap-2.5 text-sm text-gray-600">
-          <Phone size={16} className="text-primary shrink-0" />
-          <a href={`tel:${court.phone}`} className="hover:text-primary transition-colors">
-            {court.phone}
-          </a>
+
+        <div className="space-y-3 text-[15px] leading-7 text-neutral-800">
+          <div className="flex items-start gap-3">
+            <MapPin size={18} strokeWidth={2.1} className="mt-1 shrink-0 text-black" />
+            <span>{court.address}</span>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <UserRound size={18} strokeWidth={2.1} className="mt-1 shrink-0 text-black" />
+            <div>
+              <p>{court.coach}</p>
+              <p className="text-neutral-600">{court.coachPhone}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Phone size={18} strokeWidth={2.1} className="mt-1 shrink-0 text-black" />
+            <a href={`tel:${court.phone}`} className="hover:underline">
+              {court.phone}
+            </a>
+          </div>
+
         </div>
-        <div className="pt-3 border-t border-gray-100">
-          <p className="flex items-center gap-2 text-sm">
-            <User size={16} className="text-accent shrink-0" />
-            <span className="font-medium text-dark">{court.coach}</span>
-          </p>
-          <p className="text-xs text-gray-500 ml-6 mt-0.5">{court.coachPhone}</p>
+
+        <div className="border-t-2 border-black pt-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Clock3 size={17} strokeWidth={2.1} className="shrink-0 text-black" />
+            <p className="text-[11px] font-black uppercase tracking-[0.26em] text-neutral-500">
+              Расписание
+            </p>
+          </div>
+
+          <div className="space-y-2 text-sm sm:text-[15px]">
+            {hoursRows.map(row => (
+              <div key={`${court.id}-${row.label}`} className="grid grid-cols-[5.2rem_1fr] gap-3">
+                <span className="font-bold text-neutral-700">{row.label}</span>
+                <span className="text-neutral-900">{row.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
