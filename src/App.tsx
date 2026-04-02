@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -11,6 +12,16 @@ import TournamentsPage from './pages/TournamentsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname]);
+
+  return null;
+}
 
 function AppShell() {
   const { pathname } = useLocation();
@@ -28,7 +39,14 @@ function AppShell() {
     isAuthFullPage ? '' : isHome || isStringing ? 'text-gray-900' : 'text-gray-200';
 
   return (
+<<<<<<< HEAD
     <div className={`min-h-screen flex flex-col ${shellBgClass}`}>
+=======
+    <div
+      className={`min-h-screen flex flex-col ${isHome && !isAuthFullPage ? 'bg-gray-50' : 'bg-dark'}`}
+    >
+      <ScrollToTop />
+>>>>>>> ebb5d2470825e1acc00e215bc33988de14c925f3
       {!isAuthFullPage && <Navbar />}
       <main className={`flex-1 ${isAuthFullPage ? 'min-h-screen' : 'pt-[72px]'} ${mainToneClass}`}>
         <Routes>
