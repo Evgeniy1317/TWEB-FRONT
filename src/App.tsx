@@ -15,16 +15,22 @@ import ProfilePage from './pages/ProfilePage';
 function AppShell() {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
+  const isStringing = pathname === '/stringing';
   const isAuthFullPage = pathname === '/register' || pathname === '/login';
+  const shellBgClass = isAuthFullPage
+    ? 'bg-dark'
+    : isStringing
+      ? 'bg-[#e8e8e8]'
+      : isHome
+        ? 'bg-gray-50'
+        : 'bg-dark';
+  const mainToneClass =
+    isAuthFullPage ? '' : isHome || isStringing ? 'text-gray-900' : 'text-gray-200';
 
   return (
-    <div
-      className={`min-h-screen flex flex-col ${isHome && !isAuthFullPage ? 'bg-gray-50' : 'bg-dark'}`}
-    >
+    <div className={`min-h-screen flex flex-col ${shellBgClass}`}>
       {!isAuthFullPage && <Navbar />}
-      <main
-        className={`flex-1 ${isAuthFullPage ? 'min-h-screen' : 'pt-[72px]'} ${isHome && !isAuthFullPage ? '' : 'text-gray-200'}`}
-      >
+      <main className={`flex-1 ${isAuthFullPage ? 'min-h-screen' : 'pt-[72px]'} ${mainToneClass}`}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/market/listing/:id" element={<MarketListingDetailPage />} />
