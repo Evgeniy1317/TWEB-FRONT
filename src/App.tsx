@@ -39,14 +39,8 @@ function AppShell() {
     isAuthFullPage ? '' : isHome || isStringing ? 'text-gray-900' : 'text-gray-200';
 
   return (
-<<<<<<< HEAD
     <div className={`min-h-screen flex flex-col ${shellBgClass}`}>
-=======
-    <div
-      className={`min-h-screen flex flex-col ${isHome && !isAuthFullPage ? 'bg-gray-50' : 'bg-dark'}`}
-    >
       <ScrollToTop />
->>>>>>> ebb5d2470825e1acc00e215bc33988de14c925f3
       {!isAuthFullPage && <Navbar />}
       <main className={`flex-1 ${isAuthFullPage ? 'min-h-screen' : 'pt-[72px]'} ${mainToneClass}`}>
         <Routes>
