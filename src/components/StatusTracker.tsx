@@ -27,37 +27,40 @@ export default function StatusTracker({ status }: StatusTrackerProps) {
   const currentStep = statusIndex[status] ?? 0;
 
   return (
-    <div className="flex items-center gap-0 w-full">
+    <div className="flex w-full items-start gap-0">
       {steps.map((step, idx) => {
         const isCompleted = idx <= currentStep;
         const isCurrent = idx === currentStep;
         const Icon = step.icon;
 
         return (
-          <div key={step.key} className="flex items-center flex-1 last:flex-none">
+          <div key={step.key} className="flex flex-1 items-start last:flex-none">
             <div className="flex flex-col items-center">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all
-                  ${isCurrent ? 'bg-primary text-white shadow-md status-pulse' : ''}
-                  ${isCompleted && !isCurrent ? 'bg-primary/20 text-primary-dark' : ''}
-                  ${!isCompleted ? 'bg-gray-100 text-gray-400' : ''}
-                `}
+                className={`flex h-11 w-11 items-center justify-center rounded-full border-2 border-black transition-colors ${
+                  isCurrent
+                    ? 'bg-primary text-black shadow-[3px_3px_0_0_#000]'
+                    : isCompleted
+                      ? 'bg-primary/20 text-black'
+                      : 'bg-white text-neutral-400'
+                }`}
               >
                 <Icon size={18} />
               </div>
               <span
-                className={`text-xs mt-1.5 font-medium
-                  ${isCompleted ? 'text-primary-dark' : 'text-gray-400'}
-                `}
+                className={`mt-2 text-center text-[11px] font-black uppercase tracking-wide ${
+                  isCompleted ? 'text-black' : 'text-neutral-400'
+                }`}
               >
                 {step.label}
               </span>
             </div>
+
             {idx < steps.length - 1 && (
               <div
-                className={`flex-1 h-0.5 mx-2 rounded-full transition-all
-                  ${idx < currentStep ? 'bg-primary' : 'bg-gray-200'}
-                `}
+                className={`mt-5 h-1 flex-1 border-y border-black ${
+                  idx < currentStep ? 'bg-primary' : 'bg-neutral-200'
+                }`}
               />
             )}
           </div>
