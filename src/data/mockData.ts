@@ -401,7 +401,6 @@ export const mockUser: AppUser = {
   name: 'Алексей Морарь',
   email: 'alex.morar@example.com',
   phone: '+373 69 999 000',
-  role: 'user',
   favorites: [1, 3, 5],
   avatar: null,
 };
