@@ -12,6 +12,7 @@ import TournamentsPage from './pages/TournamentsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+import ProfileListingDetailPage from './pages/ProfileListingDetailPage';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -53,6 +54,7 @@ function AppShell() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/profile/listing/:id" element={<ProfileListingDetailPage />} />
         </Routes>
       </main>
       {!isAuthFullPage && <Footer />}

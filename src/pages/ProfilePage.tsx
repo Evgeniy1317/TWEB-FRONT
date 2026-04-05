@@ -1,10 +1,11 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { stringingOrders } from '../data/mockData';
 import StatusTracker from '../components/StatusTracker';
 import type { Product, ProductCategory, ProductCondition, ProductGender } from '../types';
-import { ClipboardList, LogOut, Mail, Phone, ShoppingBag, ShoppingCart, SquarePen } from 'lucide-react';
+import { ClipboardList, LogOut, Mail, Phone, ShoppingBag, ShoppingCart, SquarePen, Trash2 } from 'lucide-react';
+import { deleteProfileListingById, loadProfileListings, saveProfileListings } from '../services/profileListings';
 
 type ProfileTab = 'listings' | 'cart' | 'orders' | 'edit';
 
@@ -22,7 +23,7 @@ type ListingFormState = {
   colorLabel: string;
   description: string;
   image: string;
-  imageName: string;
+  imagePreviews: string[];
   gender: '' | ProductGender;
   sizeLabel: string;
 };
@@ -64,10 +65,13 @@ const initialListingForm: ListingFormState = {
   colorLabel: '',
   description: '',
   image: '',
-  imageName: '',
+  imagePreviews: [],
   gender: '',
   sizeLabel: '',
 };
+
+const isProfileTab = (value: string | null): value is ProfileTab =>
+  value === 'listings' || value === 'cart' || value === 'orders' || value === 'edit';
 
 function ProfileEmptyState({
   title,
@@ -109,59 +113,56 @@ function ProfileEmptyState({
   );
 }
 
-function ListingPreviewCard({ product }: { product: Product }) {
+function ProfileListingCard({
+  product,
+  onDelete,
+}: {
+  product: Product;
+  onDelete: (id: number) => void;
+}) {
+  const openLabel = `${product.title} — открыть объявление`;
+
   return (
-    <article className="overflow-hidden border-2 border-black bg-white sketch-shadow-sm">
-      <div className="grid gap-0 md:grid-cols-[15rem_minmax(0,1fr)]">
-        <div className="aspect-[4/3] border-b-2 border-black bg-neutral-100 md:aspect-auto md:h-full md:border-b-0 md:border-r-2">
+    <article className="relative flex flex-col overflow-hidden rounded-none border border-gray-300 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md hover:ring-2 hover:ring-primary/40">
+      <Link
+        to={`/profile/listing/${product.id}`}
+        className="absolute inset-0 z-[1]"
+        aria-label={openLabel}
+      />
+      <div className="relative z-[2] flex flex-1 flex-col pointer-events-none">
+        <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
           <img
             src={product.image}
             alt={product.title}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover select-none"
+            width={400}
+            height={400}
+            decoding="async"
+            draggable={false}
+            loading="lazy"
           />
+          <button
+            type="button"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              onDelete(product.id);
+            }}
+            className="pointer-events-auto absolute right-2 top-2 z-[3] flex h-10 w-10 items-center justify-center rounded-full border border-red-200/90 bg-white/95 text-red-600 shadow-sm outline-none transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-300"
+            aria-label={`Удалить объявление ${product.title}`}
+          >
+            <Trash2 size={18} strokeWidth={2.2} />
+          </button>
         </div>
 
-        <div className="p-5">
-          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="mb-2 inline-block border-b border-dashed border-black/30 pb-1 text-[10px] font-black uppercase tracking-[0.22em] text-neutral-500">
-                {categoryLabel[product.category]}
-              </p>
-              <h3 className="text-xl font-black tracking-tight">{product.title}</h3>
-            </div>
-
-            <div className="border-2 border-black bg-white px-4 py-2 text-right sketch-shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-neutral-500">Цена</p>
-              <p className="text-lg font-black tabular-nums">{product.price} MDL</p>
-            </div>
-          </div>
-
-          <div className="mb-4 border-2 border-black bg-white p-4">
-            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-neutral-500">
-              Основные характеристики
-            </p>
-            <dl className="space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-4 border-b border-black/10 pb-2">
-                <dt className="font-bold text-neutral-600">Категория</dt>
-                <dd className="font-bold">{categoryLabel[product.category]}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4 border-b border-black/10 pb-2">
-                <dt className="font-bold text-neutral-600">Состояние</dt>
-                <dd className="font-bold">{product.condition === 'new' ? 'Новое' : 'Б/У'}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="font-bold text-neutral-600">Цвет</dt>
-                <dd className="font-bold">{product.colorLabel || '—'}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="border-2 border-black bg-white p-4">
-            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-neutral-500">
-              Описание
-            </p>
-            <p className="text-sm leading-6 text-neutral-800">{product.description}</p>
-          </div>
+        <div className="flex flex-col gap-1 border-t border-gray-200 p-3 sm:p-3.5">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+          {categoryLabel[product.category]}
+          </p>
+          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{product.title}</h3>
+          <p className="pt-0.5 text-base font-bold tabular-nums text-gray-900 sm:text-lg">
+            {product.price.toLocaleString('ro-MD')} MDL
+          </p>
         </div>
       </div>
     </article>
@@ -171,10 +172,14 @@ function ListingPreviewCard({ product }: { product: Product }) {
 export default function ProfilePage() {
   const { user, isAuthenticated, logout, updateProfile } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<ProfileTab>('listings');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
+    const requestedTab = searchParams.get('tab');
+    return isProfileTab(requestedTab) ? requestedTab : 'listings';
+  });
   const [listingFormOpen, setListingFormOpen] = useState(false);
   const [listingForm, setListingForm] = useState<ListingFormState>(initialListingForm);
-  const [profileListings, setProfileListings] = useState<Product[]>([]);
+  const [profileListings, setProfileListings] = useState<Product[]>(() => loadProfileListings());
   const [editProfileForm, setEditProfileForm] = useState<EditProfileFormState>({
     name: '',
     email: '',
@@ -196,11 +201,26 @@ export default function ProfilePage() {
     });
   }, [user]);
 
+  useEffect(() => {
+    saveProfileListings(profileListings);
+  }, [profileListings]);
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    const nextTab = isProfileTab(requestedTab) ? requestedTab : 'listings';
+    setActiveTab(prev => (prev === nextTab ? prev : nextTab));
+  }, [searchParams]);
+
   if (!isAuthenticated || !user) return null;
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleTabChange = (tab: ProfileTab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === 'listings' ? {} : { tab });
   };
 
   const updateListingForm = <K extends keyof ListingFormState>(key: K, value: ListingFormState[K]) => {
@@ -215,24 +235,32 @@ export default function ProfilePage() {
   };
 
   const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
 
-    if (file.type !== 'image/png') {
+    if (files.some(file => file.type !== 'image/png')) {
       event.target.value = '';
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
+    Promise.all(
+      files.map(
+        file =>
+          new Promise<string>(resolve => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+            reader.readAsDataURL(file);
+          }),
+      ),
+    ).then(images => {
+      const validImages = images.filter(Boolean);
       setListingForm(prev => ({
         ...prev,
-        image: result,
-        imageName: file.name,
+        image: prev.imagePreviews[0] ?? validImages[0] ?? '',
+        imagePreviews: [...prev.imagePreviews, ...validImages].slice(0, 8),
       }));
-    };
-    reader.readAsDataURL(file);
+      event.target.value = '';
+    });
   };
 
   const handleCreateListing = (event: FormEvent) => {
@@ -245,6 +273,7 @@ export default function ProfilePage() {
       condition: listingForm.condition,
       price: Number.parseInt(listingForm.price, 10),
       image: listingForm.image,
+      extraImages: listingForm.imagePreviews.slice(1, 8),
       description: listingForm.description.trim(),
       colorLabel: listingForm.colorLabel.trim() || undefined,
       gender: listingForm.gender || undefined,
@@ -254,6 +283,22 @@ export default function ProfilePage() {
     setProfileListings(prev => [newListing, ...prev]);
     setListingForm(initialListingForm);
     setListingFormOpen(false);
+  };
+
+  const handleDeleteListing = (id: number) => {
+    const nextListings = deleteProfileListingById(id);
+    setProfileListings(nextListings);
+  };
+
+  const removeListingImage = (indexToRemove: number) => {
+    setListingForm(prev => {
+      const nextPreviews = prev.imagePreviews.filter((_, index) => index !== indexToRemove);
+      return {
+        ...prev,
+        image: nextPreviews[0] ?? '',
+        imagePreviews: nextPreviews,
+      };
+    });
   };
 
   const handleProfileSave = (event: FormEvent) => {
@@ -393,12 +438,38 @@ export default function ProfilePage() {
                 id="listing-image"
                 type="file"
                 accept="image/png"
-                required
+                multiple
+                required={listingForm.imagePreviews.length === 0}
                 onChange={handleListingImageChange}
                 className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none file:mr-3 file:border-2 file:border-black file:bg-primary file:px-3 file:py-1.5 file:font-bold file:text-black"
               />
-              {listingForm.imageName ? (
-                <p className="mt-2 text-xs font-bold text-neutral-600">Файл: {listingForm.imageName}</p>
+              <p className="mt-2 text-xs font-bold text-neutral-600">
+                До 8 PNG. Можно добавлять по несколько раз. Первая картинка будет главной.
+              </p>
+              {listingForm.imagePreviews.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {listingForm.imagePreviews.map((src, index) => (
+                    <div
+                      key={`${src}-${index}`}
+                      className="relative h-16 w-16 overflow-hidden border-2 border-black bg-white"
+                    >
+                      <img src={src} alt="" className="h-full w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeListingImage(index)}
+                        className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center border-l-2 border-b-2 border-black bg-white text-[10px] font-black leading-none text-black hover:bg-neutral-100"
+                        aria-label={`Удалить фото ${index + 1}`}
+                      >
+                        ×
+                      </button>
+                      {index === 0 ? (
+                        <span className="absolute inset-x-0 bottom-0 bg-black px-1 py-0.5 text-center text-[8px] font-bold uppercase text-white">
+                          Главная
+                        </span>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
               ) : null}
             </div>
 
@@ -470,20 +541,25 @@ export default function ProfilePage() {
         </form>
       )}
 
-      {profileListings.length === 0 ? (
-        <ProfileEmptyState
-          title="Вы ещё не разместили ни одного объявления."
-          description="Заполните форму и первое объявление сразу появится в вашем личном кабинете."
-          actionLabel="Добавить объявление"
-          onAction={() => setListingFormOpen(true)}
-        />
-      ) : (
-        <div className="space-y-5">
-          {profileListings.map(product => (
-            <ListingPreviewCard key={product.id} product={product} />
-          ))}
-        </div>
-      )}
+      {!listingFormOpen &&
+        (profileListings.length === 0 ? (
+          <ProfileEmptyState
+            title="Вы ещё не разместили ни одного объявления."
+            description="Заполните форму и первое объявление сразу появится в вашем личном кабинете."
+            actionLabel="Добавить объявление"
+            onAction={() => setListingFormOpen(true)}
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {profileListings.map(product => (
+              <ProfileListingCard
+                key={product.id}
+                product={product}
+                onDelete={handleDeleteListing}
+              />
+            ))}
+          </div>
+        ))}
     </section>
   );
 
@@ -647,7 +723,7 @@ export default function ProfilePage() {
                     <button
                       key={tab.id}
                       type="button"
-                      onClick={() => setActiveTab(tab.id)}
+                      onClick={() => handleTabChange(tab.id)}
                       className={`flex w-full items-center gap-3 border-2 border-black px-4 py-4 text-left font-bold transition-colors ${
                         active
                           ? 'bg-primary text-black sketch-shadow-sm'
