@@ -1,4 +1,4 @@
-import { Calendar, MapPin, ExternalLink } from 'lucide-react';
+import { Calendar, ExternalLink, MapPin } from 'lucide-react';
 import { tournaments } from '../data/mockData';
 
 function formatDate(dateStr: string): string {
@@ -10,61 +10,69 @@ function formatDate(dateStr: string): string {
 }
 
 function getLevelColor(level: string): string {
-  if (level.includes('Начинающий')) return 'bg-emerald-50 text-emerald-700';
-  if (level.includes('Профессиональный')) return 'bg-red-50 text-red-600';
-  if (level.includes('Средний')) return 'bg-amber-50 text-amber-700';
-  return 'bg-blue-50 text-blue-600';
+  if (level.includes('Начинающий')) return 'border-2 border-black bg-emerald-100 text-emerald-900';
+  if (level.includes('Профессиональный')) return 'border-2 border-black bg-red-100 text-red-900';
+  if (level.includes('Средний')) return 'border-2 border-black bg-amber-100 text-amber-900';
+  return 'border-2 border-black bg-sky-100 text-sky-900';
 }
 
 export default function TournamentsPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Турниры</h1>
-        <p className="text-gray-400">Предстоящие соревнования и регистрация</p>
-      </div>
+    <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full text-black">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Турниры</h1>
+          <p className="mt-2 text-sm text-neutral-700 sm:text-base">
+            Предстоящие соревнования и регистрация
+          </p>
+        </div>
 
-      <div className="space-y-4">
-        {tournaments.map(t => (
-          <div
-            key={t.id}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6 card-hover"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <h3 className="font-bold text-dark text-lg">{t.title}</h3>
-                  <span className={`px-2.5 py-0.5 rounded-lg text-xs font-bold ${getLevelColor(t.level)}`}>
-                    {t.level}
-                  </span>
+        <div className="space-y-5">
+          {tournaments.map(t => (
+            <article
+              key={t.id}
+              className="rounded-[1.35rem] border-2 border-black bg-white p-5 text-black sketch-shadow transition-transform hover:-translate-y-0.5 sm:p-6"
+            >
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                <div className="flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <h3 className="text-xl font-black tracking-tight sm:text-2xl">{t.title}</h3>
+                    <span
+                      className={`px-2.5 py-1 text-[11px] font-black uppercase tracking-wide ${getLevelColor(t.level)}`}
+                    >
+                      {t.level}
+                    </span>
+                  </div>
+
+                  <p className="mb-4 text-sm leading-relaxed text-neutral-700 sm:text-[15px]">
+                    {t.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-4 text-sm text-neutral-700 sm:text-[15px]">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar size={16} strokeWidth={2.2} className="text-black" />
+                      {formatDate(t.date)}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <MapPin size={16} strokeWidth={2.2} className="text-black" />
+                      {t.location}
+                    </span>
+                  </div>
                 </div>
 
-                <p className="text-sm text-gray-500 mb-3">{t.description}</p>
-
-                <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                  <span className="flex items-center gap-1.5">
-                    <Calendar size={14} className="text-primary" />
-                    {formatDate(t.date)}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <MapPin size={14} className="text-primary" />
-                    {t.location}
-                  </span>
-                </div>
+                <a
+                  href={t.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex shrink-0 items-center justify-center gap-2 border-2 border-black bg-primary px-5 py-3 text-sm font-black uppercase tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5"
+                >
+                  Регистрация
+                  <ExternalLink size={15} strokeWidth={2.3} />
+                </a>
               </div>
-
-              <a
-                href={t.externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary-dark transition-all shadow-md hover:shadow-lg shrink-0 text-sm"
-              >
-                Регистрация
-                <ExternalLink size={14} />
-              </a>
-            </div>
-          </div>
-        ))}
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );
