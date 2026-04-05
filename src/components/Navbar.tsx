@@ -15,6 +15,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+const CART_ICON_SRC = '/media/images/free-icon-shopping-cart-of-checkered-design-34627.png';
+
 interface NavLink {
   to: string;
   label: string;
@@ -218,6 +220,25 @@ export default function Navbar() {
 
           {/* Right — auth */}
           <div className="flex-1 flex items-center justify-end gap-3">
+            {isAuthenticated && (
+              <Link
+                to="/profile?tab=cart"
+                className="group flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-sm transition-colors duration-150 hover:bg-primary"
+                aria-label="Корзина"
+              >
+                <img
+                  src={CART_ICON_SRC}
+                  alt=""
+                  width={64}
+                  height={64}
+                  decoding="async"
+                  draggable={false}
+                  className="h-[22px] w-[22px] object-contain object-center"
+                  aria-hidden
+                />
+              </Link>
+            )}
+
             <Link
               to={isAuthenticated ? '/profile' : '/login'}
               className="group flex items-center gap-2 px-6 py-2.5 rounded-none text-[15px] font-medium transition-colors duration-150 hover:bg-transparent"
