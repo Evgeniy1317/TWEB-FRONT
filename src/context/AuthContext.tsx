@@ -7,7 +7,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => boolean;
   logout: () => void;
-  toggleRole: () => void;
+  updateProfile: (updates: Pick<AppUser, 'name' | 'email' | 'phone'>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,15 +27,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
   };
 
-  const toggleRole = () => {
-    if (!user) return;
-    setUser(prev =>
-      prev ? { ...prev, role: prev.role === 'user' ? 'master' : 'user' } : prev
-    );
+  const updateProfile = (updates: Pick<AppUser, 'name' | 'email' | 'phone'>) => {
+    setUser(prev => (prev ? { ...prev, ...updates } : prev));
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, toggleRole }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

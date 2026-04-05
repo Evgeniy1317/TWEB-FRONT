@@ -16,7 +16,6 @@ export type ProductCondition = 'new' | 'used';
 /** Для обуви, одежды, носков */
 export type ProductGender = 'mens' | 'womens' | 'unisex';
 export type OrderStatus = 'received' | 'in_progress' | 'ready';
-export type UserRole = 'user' | 'master';
 
 export interface Product {
   id: number;
@@ -72,7 +71,6 @@ export interface AppUser {
   name: string;
   email: string;
   phone: string;
-  role: UserRole;
   favorites: number[];
   avatar: string | null;
 }
