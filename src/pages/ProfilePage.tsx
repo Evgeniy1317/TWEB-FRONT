@@ -3,8 +3,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { stringingOrders } from '../data/mockData';
 import StatusTracker from '../components/StatusTracker';
-import type { Product, ProductCategory, ProductCondition, ProductGender } from '../types';
-import { ClipboardList, LogOut, Mail, Phone, ShoppingBag, ShoppingCart, SquarePen, Trash2 } from 'lucide-react';
+import type { Product, ProductCategory, ProductCondition, ProductGender, UserContact, UserContactPlatform } from '../types';
+import { ClipboardList, LogOut, Mail, Phone, Plus, ShoppingBag, ShoppingCart, SquarePen, Trash2, X } from 'lucide-react';
 import { deleteProfileListingById, loadProfileListings, saveProfileListings } from '../services/profileListings';
 
 type ProfileTab = 'listings' | 'cart' | 'orders' | 'edit';
@@ -32,7 +32,22 @@ type EditProfileFormState = {
   name: string;
   email: string;
   phone: string;
+  contacts: UserContact[];
 };
+
+type ContactPlatformOption = {
+  value: UserContactPlatform;
+  label: string;
+};
+
+const contactPlatformOptions: ContactPlatformOption[] = [
+  { value: 'telegram', label: 'Telegram' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'viber', label: 'Viber' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'whatsapp', label: 'WhatsApp' },
+  { value: 'other', label: 'Другое' },
+];
 
 const profileTabs: ProfileNavItem[] = [
   { id: 'listings', label: 'Мои объявления', icon: ShoppingBag },
@@ -70,6 +85,54 @@ const initialListingForm: ListingFormState = {
   sizeLabel: '',
 };
 
+const createEmptyContact = (): UserContact => ({
+  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  platform: 'telegram',
+  value: '',
+});
+
+const getContactPlatformLabel = (platform: UserContactPlatform): string =>
+  contactPlatformOptions.find(option => option.value === platform)?.label ?? 'Контакт';
+
+const getContactButtonClass = (platform: UserContactPlatform): string => {
+  const base =
+    'inline-flex items-center justify-center border-2 border-black px-3 py-1.5 text-xs font-black text-white sketch-shadow-sm transition-transform hover:-translate-y-0.5';
+  if (platform === 'telegram') return `${base} bg-[#229ED9]`;
+  if (platform === 'instagram') return `${base} bg-[#E4405F]`;
+  if (platform === 'viber') return `${base} bg-[#7360F2]`;
+  if (platform === 'facebook') return `${base} bg-[#1877F2]`;
+  if (platform === 'whatsapp') return `${base} bg-[#25D366]`;
+  return `${base} bg-neutral-700`;
+};
+
+const buildContactHref = (contact: UserContact): string => {
+  const trimmedValue = contact.value.trim();
+  if (!trimmedValue) return '#';
+  if (/^(https?:\/\/|mailto:)/i.test(trimmedValue)) return trimmedValue;
+
+  if (contact.platform === 'telegram') {
+    return `https://t.me/${trimmedValue.replace(/^@/, '').replace(/^\//, '')}`;
+  }
+
+  if (contact.platform === 'instagram') {
+    return `https://www.instagram.com/${trimmedValue.replace(/^@/, '').replace(/^\//, '')}`;
+  }
+
+  if (contact.platform === 'facebook') {
+    return `https://www.facebook.com/${trimmedValue.replace(/^@/, '').replace(/^\//, '')}`;
+  }
+
+  if (contact.platform === 'whatsapp') {
+    return `https://wa.me/${trimmedValue.replace(/\D/g, '')}`;
+  }
+
+  if (contact.platform === 'viber') {
+    return `viber://chat?number=${trimmedValue.replace(/[^\d+]/g, '')}`;
+  }
+
+  return `https://${trimmedValue}`;
+};
+
 const isProfileTab = (value: string | null): value is ProfileTab =>
   value === 'listings' || value === 'cart' || value === 'orders' || value === 'edit';
 
@@ -79,12 +142,14 @@ function ProfileEmptyState({
   actionLabel,
   actionTo,
   onAction,
+  actionError,
 }: {
   title: string;
   description: string;
   actionLabel: string;
   actionTo?: string;
   onAction?: () => void;
+  actionError?: string;
 }) {
   return (
     <div className="flex min-h-[22rem] flex-col items-center justify-center border-2 border-black bg-white px-6 py-10 text-center sketch-shadow">
@@ -109,6 +174,7 @@ function ProfileEmptyState({
           {actionLabel}
         </button>
       )}
+      {actionError ? <p className="mt-4 max-w-xl text-sm font-bold text-red-600">{actionError}</p> : null}
     </div>
   );
 }
@@ -178,12 +244,14 @@ export default function ProfilePage() {
     return isProfileTab(requestedTab) ? requestedTab : 'listings';
   });
   const [listingFormOpen, setListingFormOpen] = useState(false);
+  const [listingContactError, setListingContactError] = useState('');
   const [listingForm, setListingForm] = useState<ListingFormState>(initialListingForm);
   const [profileListings, setProfileListings] = useState<Product[]>(() => loadProfileListings());
   const [editProfileForm, setEditProfileForm] = useState<EditProfileFormState>({
     name: '',
     email: '',
     phone: '',
+    contacts: [],
   });
 
   useEffect(() => {
@@ -197,7 +265,8 @@ export default function ProfilePage() {
     setEditProfileForm({
       name: user.name,
       email: user.email,
-      phone: user.phone,
+      phone: user.phone ?? '',
+      contacts: user.contacts ?? [],
     });
   }, [user]);
 
@@ -223,6 +292,19 @@ export default function ProfilePage() {
     setSearchParams(tab === 'listings' ? {} : { tab });
   };
 
+  const hasAnyContactData =
+    Boolean(user.phone?.trim()) || user.contacts.some(contact => contact.value.trim().length > 0);
+
+  const handleOpenListingForm = () => {
+    if (!hasAnyContactData) {
+      setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы разместить объявление.');
+      return;
+    }
+
+    setListingContactError('');
+    setListingFormOpen(true);
+  };
+
   const updateListingForm = <K extends keyof ListingFormState>(key: K, value: ListingFormState[K]) => {
     setListingForm(prev => ({ ...prev, [key]: value }));
   };
@@ -232,6 +314,28 @@ export default function ProfilePage() {
     value: EditProfileFormState[K],
   ) => {
     setEditProfileForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const addContactField = () => {
+    setEditProfileForm(prev => ({ ...prev, contacts: [...prev.contacts, createEmptyContact()] }));
+  };
+
+  const updateContactField = <K extends keyof UserContact>(
+    id: string,
+    key: K,
+    value: UserContact[K],
+  ) => {
+    setEditProfileForm(prev => ({
+      ...prev,
+      contacts: prev.contacts.map(contact => (contact.id === id ? { ...contact, [key]: value } : contact)),
+    }));
+  };
+
+  const removeContactField = (id: string) => {
+    setEditProfileForm(prev => ({
+      ...prev,
+      contacts: prev.contacts.filter(contact => contact.id !== id),
+    }));
   };
 
   const handleListingImageChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -265,6 +369,12 @@ export default function ProfilePage() {
 
   const handleCreateListing = (event: FormEvent) => {
     event.preventDefault();
+
+    if (!hasAnyContactData) {
+      setListingFormOpen(false);
+      setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы разместить объявление.');
+      return;
+    }
 
     const newListing: Product = {
       id: Date.now(),
@@ -308,8 +418,20 @@ export default function ProfilePage() {
       name: editProfileForm.name.trim(),
       email: editProfileForm.email.trim(),
       phone: editProfileForm.phone.trim(),
+      contacts: editProfileForm.contacts
+        .map(contact => ({
+          ...contact,
+          value: contact.value.trim(),
+        }))
+        .filter(contact => contact.value.length > 0),
     });
   };
+
+  useEffect(() => {
+    if (hasAnyContactData) {
+      setListingContactError('');
+    }
+  }, [hasAnyContactData]);
 
   const renderListingsContent = () => (
     <section>
@@ -322,7 +444,7 @@ export default function ProfilePage() {
 
         <button
           type="button"
-          onClick={() => setListingFormOpen(true)}
+          onClick={handleOpenListingForm}
           className="border-2 border-black bg-primary px-4 py-2 font-bold text-black sketch-shadow-sm transition-colors hover:bg-primary-dark"
         >
           Добавить объявление
@@ -547,7 +669,8 @@ export default function ProfilePage() {
             title="Вы ещё не разместили ни одного объявления."
             description="Заполните форму и первое объявление сразу появится в вашем личном кабинете."
             actionLabel="Добавить объявление"
-            onAction={() => setListingFormOpen(true)}
+            onAction={handleOpenListingForm}
+            actionError={listingContactError}
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -635,10 +758,9 @@ export default function ProfilePage() {
               </span>
               <input
                 type="text"
-                required
                 value={editProfileForm.phone}
                 onChange={event => updateEditProfileForm('phone', event.target.value)}
-                placeholder="Введите телефон"
+                placeholder="Если хотите, добавьте телефон"
                 className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold text-black outline-none placeholder:font-normal placeholder:text-neutral-400"
               />
             </label>
@@ -656,6 +778,68 @@ export default function ProfilePage() {
                 className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold text-black outline-none placeholder:font-normal placeholder:text-neutral-400"
               />
             </label>
+
+            <div className="sm:col-span-2">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                <span className="block text-[11px] font-black uppercase tracking-[0.24em] text-neutral-500">
+                  Дополнительные контакты
+                </span>
+                <button
+                  type="button"
+                  onClick={addContactField}
+                  className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-neutral-100"
+                >
+                  <Plus size={14} />
+                  Добавить контакт
+                </button>
+              </div>
+
+              {editProfileForm.contacts.length > 0 ? (
+                <div className="space-y-3">
+                  {editProfileForm.contacts.map(contact => (
+                    <div
+                      key={contact.id}
+                      className="grid gap-3 border-2 border-black bg-neutral-50 p-3 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-center"
+                    >
+                      <select
+                        value={contact.platform}
+                        onChange={event =>
+                          updateContactField(contact.id, 'platform', event.target.value as UserContactPlatform)
+                        }
+                        className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none"
+                      >
+                        {contactPlatformOptions.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <input
+                        type="text"
+                        value={contact.value}
+                        onChange={event => updateContactField(contact.id, 'value', event.target.value)}
+                        placeholder="Ник, ссылка или номер"
+                        className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold text-black outline-none placeholder:font-normal placeholder:text-neutral-400"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => removeContactField(contact.id)}
+                        className="inline-flex items-center justify-center border-2 border-black bg-white px-3 py-3 text-black transition-colors hover:bg-neutral-100"
+                        aria-label={`Удалить контакт ${getContactPlatformLabel(contact.platform)}`}
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-black/40 bg-neutral-50 px-4 py-5 text-sm text-neutral-600">
+                  Сейчас дополнительных контактов нет.
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3 border-t-2 border-black pt-5">
@@ -671,7 +855,8 @@ export default function ProfilePage() {
                 setEditProfileForm({
                   name: user.name,
                   email: user.email,
-                  phone: user.phone,
+                  phone: user.phone ?? '',
+                  contacts: user.contacts ?? [],
                 })
               }
               className="border-2 border-black bg-white px-5 py-3 font-bold text-black transition-colors hover:bg-neutral-100"
@@ -702,10 +887,28 @@ export default function ProfilePage() {
                   <Mail size={15} />
                   {user.email}
                 </p>
-                <p className="flex items-center gap-2">
-                  <Phone size={15} />
-                  {user.phone}
-                </p>
+                {user.phone ? (
+                  <p className="flex items-center gap-2">
+                    <Phone size={15} />
+                    {user.phone}
+                  </p>
+                ) : null}
+                {user.contacts.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {user.contacts.map(contact => (
+                      <a
+                        key={contact.id}
+                        href={buildContactHref(contact)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={getContactButtonClass(contact.platform)}
+                        title={contact.value}
+                      >
+                        {getContactPlatformLabel(contact.platform)}
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
 
