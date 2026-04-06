@@ -66,11 +66,20 @@ export interface StringingOrder {
   createdAt: string;
 }
 
+export type UserContactPlatform = 'telegram' | 'instagram' | 'viber' | 'facebook' | 'whatsapp' | 'other';
+
+export interface UserContact {
+  id: string;
+  platform: UserContactPlatform;
+  value: string;
+}
+
 export interface AppUser {
   id: number;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
+  contacts: UserContact[];
   favorites: number[];
   avatar: string | null;
 }

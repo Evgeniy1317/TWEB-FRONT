@@ -7,7 +7,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => boolean;
   logout: () => void;
-  updateProfile: (updates: Pick<AppUser, 'name' | 'email' | 'phone'>) => void;
+  updateProfile: (updates: Pick<AppUser, 'name' | 'email' | 'phone' | 'contacts'>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAuthenticated(false);
   };
 
-  const updateProfile = (updates: Pick<AppUser, 'name' | 'email' | 'phone'>) => {
+  const updateProfile = (updates: Pick<AppUser, 'name' | 'email' | 'phone' | 'contacts'>) => {
     setUser(prev => (prev ? { ...prev, ...updates } : prev));
   };
 
