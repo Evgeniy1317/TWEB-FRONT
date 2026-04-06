@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ChevronDown, LayoutGrid, Search, X } from 'lucide-react';
 import FleaMarketListingCard from '../components/FleaMarketListingCard';
 import MarketFiltersPanel, {
   type MarketConditionFilter,
-  type MarketGenderFilter,
   type MarketSortOption,
 } from '../components/MarketFiltersPanel';
 import { products } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import { useProfileListings } from '../context/ProfileListingsContext';
+import { useCart } from '../context/CartContext';
+import type { Product, ProductFit } from '../types';
+import { categoryHasFitField, normalizeProductFit } from '../utils/productCategoryFields';
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items];
@@ -87,19 +92,36 @@ export default function MarketPage() {
   const [search, setSearch] = useState('');
   const [selectedRibbonId, setSelectedRibbonId] = useState<string>('all');
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
-  const [cartProductIds, setCartProductIds] = useState<number[]>([]);
+  const { isAuthenticated } = useAuth();
+  const { listings: profileListings } = useProfileListings();
+  const navigate = useNavigate();
+  const { isInCart, toggleProduct } = useCart();
+
+  const handleToggleCart = useCallback(
+    (product: Product) => {
+      if (!isAuthenticated) {
+        navigate('/login', { state: { from: '/market' } });
+        return;
+      }
+      toggleProduct(product);
+    },
+    [isAuthenticated, navigate, toggleProduct],
+  );
   const [filterPriceMin, setFilterPriceMin] = useState('');
   const [filterPriceMax, setFilterPriceMax] = useState('');
   const [filterCondition, setFilterCondition] = useState<MarketConditionFilter>('all');
   const [filterSort, setFilterSort] = useState<MarketSortOption>('default');
-  const [filterGender, setFilterGender] = useState<MarketGenderFilter>('all');
   const [filterSize, setFilterSize] = useState('');
+  const [filterFit, setFilterFit] = useState<ProductFit | ''>('');
 
-  const shuffledProducts = useMemo(() => shuffle([...products]), []);
+  const shuffledProducts = useMemo(
+    () => shuffle([...products, ...profileListings]),
+    [profileListings],
+  );
 
   useEffect(() => {
-    setFilterGender('all');
     setFilterSize('');
+    setFilterFit('');
   }, [selectedRibbonId]);
 
   const resetMarketFilters = useCallback(() => {
@@ -107,8 +129,8 @@ export default function MarketPage() {
     setFilterPriceMax('');
     setFilterCondition('all');
     setFilterSort('default');
-    setFilterGender('all');
     setFilterSize('');
+    setFilterFit('');
   }, []);
 
   const showAllCategories = useCallback(() => {
@@ -151,18 +173,17 @@ export default function MarketPage() {
       selectedRibbonId === 'clothing' ||
       selectedRibbonId === 'socks';
     if (isApparelCategory) {
-      if (filterGender !== 'all') {
-        list = list.filter(p => {
-          const g = p.gender ?? 'unisex';
-          if (filterGender === 'mens') return g === 'mens' || g === 'unisex';
-          if (filterGender === 'womens') return g === 'womens' || g === 'unisex';
-          return true;
-        });
-      }
       const sizeQ = filterSize.trim();
       if (sizeQ !== '') {
         list = list.filter(p => p.sizeLabel === sizeQ);
       }
+    }
+
+    if (filterFit !== '') {
+      list = list.filter(p => {
+        if (!categoryHasFitField(p.category)) return false;
+        return normalizeProductFit(p.fit) === filterFit;
+      });
     }
 
     const sorted = [...list];
@@ -180,8 +201,8 @@ export default function MarketPage() {
     filterPriceMax,
     filterCondition,
     filterSort,
-    filterGender,
     filterSize,
+    filterFit,
   ]);
 
   const apparelFilterCategory =
@@ -189,9 +210,9 @@ export default function MarketPage() {
       ? (selectedRibbonId as 'shoes' | 'clothing' | 'socks')
       : null;
 
-  const toggleCartItem = (id: number) => {
-    setCartProductIds(prev => (prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]));
-  };
+  const showFitFilter =
+    selectedRibbonId === 'all' ||
+    ['shoes', 'clothing', 'socks', 'bags', 'knee_braces'].includes(selectedRibbonId);
 
   const onSearchSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -387,10 +408,11 @@ export default function MarketPage() {
             onReset={resetMarketFilters}
             onShowAllCategories={showAllCategories}
             apparelFilterCategory={apparelFilterCategory}
-            gender={filterGender}
-            onGenderChange={setFilterGender}
             sizeFilter={filterSize}
             onSizeFilterChange={setFilterSize}
+            showFitFilter={showFitFilter}
+            fitFilter={filterFit}
+            onFitFilterChange={setFilterFit}
           />
           <div className="min-w-0">
             <div className="mb-4 border-b-2 border-black pb-3">
@@ -404,8 +426,9 @@ export default function MarketPage() {
                   <FleaMarketListingCard
                     key={product.id}
                     product={product}
-                    inCart={cartProductIds.includes(product.id)}
-                    onToggleCart={toggleCartItem}
+                    inCart={isAuthenticated && isInCart(product.id)}
+                    cartRequiresAuth={!isAuthenticated}
+                    onToggleCart={handleToggleCart}
                   />
                 ))}
               </div>

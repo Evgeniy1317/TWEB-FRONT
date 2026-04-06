@@ -2,37 +2,41 @@ import { useEffect, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 
-/** Градиент за карточкой — чуть заметнее тёмно-зелёный к краю */
+/** Градиент за карточкой; на md+ вокруг компактной карточки чуть больше поля по вертикали */
 const shellOuter =
-  'box-border flex h-dvh max-h-dvh min-h-0 overflow-hidden items-center justify-center px-3 py-4 sm:px-4 sm:py-5 md:py-3 ' +
+  'box-border flex h-dvh max-h-dvh min-h-0 overflow-hidden items-center justify-center px-3 py-3 sm:px-4 sm:py-4 ' +
+  'md:py-8 ' +
   'bg-[linear-gradient(145deg,#080808_0%,#0a0a0a_22%,#0c1814_48%,#0a2219_72%,#062a1c_100%)]';
 
 const shellInner = 'relative z-[1] flex w-full min-h-0 max-h-full justify-center overflow-hidden';
 
-/** Высота рамки-карточки: меньше вьюпорта по вертикали; колонки md — одна строка сетки */
+/**
+ * Мобилка: высокая карточка на всю ширину колонки.
+ * С md: высота calc(100dvh − 220px), ширина до ~860px (шире, чем 640px).
+ */
 const cardGrid =
   'flex w-full flex-col overflow-hidden border border-white/12 shadow-2xl shadow-black/40 rounded-none ' +
-  'h-[calc(100dvh-220px)] min-h-[calc(100dvh-220px)] max-h-[calc(100dvh-220px)] ' +
+  'h-[calc(100dvh-1.5rem)] min-h-0 max-h-[calc(100dvh-1.5rem)] ' +
   'max-w-[min(100%,24rem)] sm:max-w-[min(100%,28rem)] ' +
   'md:grid md:grid-cols-2 md:grid-rows-1 md:items-stretch ' +
-  'md:h-[calc(100dvh-200px)] md:min-h-[calc(100dvh-200px)] md:max-h-[calc(100dvh-200px)] ' +
+  'md:h-[calc(100dvh-220px)] md:max-h-[calc(100dvh-220px)] ' +
   'md:max-w-[min(94vw,800px)] lg:max-w-[min(94vw,860px)]';
 
 /** Фото без отступов: заполняет ячейку (object-cover) */
 const imagePane =
   'relative m-0 w-full min-w-0 shrink-0 overflow-hidden bg-black p-0 ' +
-  'h-[min(32dvh,200px)] ' +
+  'h-[min(28dvh,180px)] ' +
   'md:h-full md:min-h-0 md:border-r md:border-white/10';
 
 /** Колонка формы на всю высоту строки сетки; скролл только у внутреннего блока */
 const formPane =
   'relative flex min-h-0 w-full min-w-0 flex-1 flex-col border-t border-white/10 bg-[#111] text-white md:h-full md:border-t-0';
 
-/** Центр по высоте колонки (как у картинки слева); pt сверху — зона под абсолютную ссылку «Назад» */
+/** Колонка формы: компактные отступы, скролл только если контент реально не помещается (узкий по высоте экран) */
 const formScroll =
-  'flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-5 pt-11 pb-6 sm:px-6 sm:pt-12 sm:pb-7 md:px-6 md:pt-11 md:pb-6 lg:px-7 lg:pb-7';
+  'flex min-h-0 flex-1 flex-col justify-center overflow-y-auto px-4 pt-10 pb-4 sm:px-5 sm:pt-10 sm:pb-4 md:px-5 md:pt-10 md:pb-4';
 
-const contentWrap = 'mx-auto w-full min-w-0 max-w-md pt-1 sm:pt-1.5 md:min-h-0 md:pt-1';
+const contentWrap = 'mx-auto w-full min-w-0 max-w-md md:min-h-0';
 
 const backLinkClass =
   'absolute left-4 top-3 z-10 inline-flex max-w-[calc(100%-1.5rem)] items-center gap-1.5 text-[11px] text-white/55 transition-colors hover:text-white sm:left-5 sm:top-3.5 sm:text-xs md:left-5 md:top-3 lg:left-6 lg:top-4';

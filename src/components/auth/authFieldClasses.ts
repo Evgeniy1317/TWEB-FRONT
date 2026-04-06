@@ -1,6 +1,6 @@
 /** Общие стили полей для Login / Register */
 const authInputBase =
-  'w-full rounded-none bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/35 focus:outline-none focus:ring-1';
+  'w-full rounded-none bg-white/5 px-3 py-[0.4rem] text-sm leading-snug text-white placeholder:text-white/35 focus:outline-none focus:ring-1';
 
 export const authInputClass =
   `${authInputBase} border border-white/18 focus:border-primary focus:ring-primary`;

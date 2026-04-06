@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { AuthSplitCardShell } from '../components/auth/AuthSplitCardShell';
@@ -9,6 +9,7 @@ import {
   getAuthEmailAriaInvalid,
   getAuthEmailInputClass,
 } from '../components/auth/authFieldClasses';
+import { getPostAuthRedirect } from '../utils/postAuthRedirect';
 
 const LOGIN_IMAGE = '/media/images/original-54780b5d8c3bd316e079f55fc52e6baf.webp';
 
@@ -20,11 +21,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     login(email, password);
-    navigate('/profile');
+    navigate(getPostAuthRedirect(location.state));
   };
 
   const handleGoogle = () => {
@@ -114,7 +116,7 @@ export default function LoginPage() {
 
       <p className="mt-4 text-center text-xs text-white/45 sm:text-sm">
         Нет аккаунта?{' '}
-        <Link to="/register" className="font-medium text-primary hover:underline">
+        <Link to="/register" state={location.state} className="font-medium text-primary hover:underline">
           Зарегистрироваться
         </Link>
       </p>

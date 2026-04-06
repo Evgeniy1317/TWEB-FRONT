@@ -287,7 +287,7 @@ export default function StringingPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black bg-neutral-50 px-3 py-3 text-sm font-black text-gray-900">
                     <span className="uppercase tracking-wide">Итого</span>
                     <span
-                      className="inline-flex min-w-[6.5rem] items-center justify-center rounded-lg border-2 border-primary bg-primary/20 px-4 py-2 text-base tabular-nums text-primary-dark shadow-[3px_3px_0_0_#00C853]"
+                      className="inline-flex min-w-[6.5rem] items-center justify-center rounded-lg border-2 border-primary bg-primary/20 px-4 py-2 text-base font-black tabular-nums text-black shadow-[3px_3px_0_0_#00C853]"
                       aria-live="polite"
                     >
                       {totalLei} lei
@@ -333,12 +333,12 @@ export default function StringingPage() {
           </div>
         </section>
 
-        {/* Одна рамка: видео слева (без отдельной тени), мастер и вопросы справа; высота колонок совпадает на lg */}
+        {/* Одна рамка без общей тени (тень убрана с блока — портрет мастера только с обводкой) */}
         <section className="mt-14 sm:mt-16" aria-labelledby="stringing-video-master-heading">
           <h2 id="stringing-video-master-heading" className="sr-only">
             Видео, мастер и вопросы
           </h2>
-          <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-md border-2 border-black bg-white sketch-shadow">
+          <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-md border-2 border-black bg-white">
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-stretch">
               <div className="relative border-b-2 border-black bg-black lg:border-b-0 lg:border-r-2">
                 <div className="relative mx-auto aspect-[9/16] w-full max-w-[min(100%,22rem)] lg:mx-0 lg:w-[22rem] lg:max-w-none">
@@ -369,7 +369,7 @@ export default function StringingPage() {
                 <div className="flex h-full min-h-0 flex-col gap-0 p-2.5 sm:p-3">
                   <div className="flex shrink-0 flex-col items-start gap-2 sm:flex-row sm:items-stretch sm:gap-3">
                     <div className="relative w-[10.5rem] shrink-0 self-start sm:w-[12rem]">
-                      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border-2 border-black bg-neutral-100">
+                      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border-2 border-black bg-neutral-100 shadow-none">
                         {!masterPhotoError ? (
                           <img
                             src={STRINGING_MASTER_IMG}

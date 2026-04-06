@@ -37,8 +37,8 @@ const productsSeed: Product[] = [
     image: 'https://picsum.photos/seed/smash-p3/400/400',
     colorLabel: 'Белый / синий',
     description: 'Кроссовки для бадминтона с амортизацией',
-    gender: 'mens',
     sizeLabel: '42',
+    fit: 'unisex',
   },
   {
     id: 4,
@@ -69,8 +69,8 @@ const productsSeed: Product[] = [
     image: 'https://picsum.photos/seed/smash-p6/400/400',
     colorLabel: 'Чёрный',
     description: 'Б/У кроссовки, размер 43',
-    gender: 'mens',
     sizeLabel: '43',
+    fit: 'mens',
   },
   {
     id: 7,
@@ -101,6 +101,7 @@ const productsSeed: Product[] = [
     image: 'https://picsum.photos/seed/smash-p9/400/400',
     colorLabel: 'Чёрный',
     description: 'На 3 ракетки, отдел для обуви',
+    fit: 'unisex',
   },
   {
     id: 10,
@@ -111,8 +112,8 @@ const productsSeed: Product[] = [
     image: 'https://picsum.photos/seed/smash-p10/400/400',
     colorLabel: 'Белый',
     description: 'Дышащая ткань, размер M',
-    gender: 'unisex',
     sizeLabel: 'M',
+    fit: 'mens',
   },
   {
     id: 11,
@@ -163,7 +164,6 @@ const productsSeed: Product[] = [
     image: 'https://picsum.photos/seed/smash-p15/400/400',
     colorLabel: 'Белый',
     description: 'Набор 2 пары, дышащий хлопок',
-    gender: 'unisex',
     sizeLabel: '39-42',
   },
   {
@@ -205,7 +205,6 @@ const productsSeed: Product[] = [
     image: 'https://picsum.photos/seed/smash-p19/400/400',
     colorLabel: 'Розовый',
     description: 'Лёгкие кроссовки, женская коллекция',
-    gender: 'womens',
     sizeLabel: '39',
   },
   {
@@ -217,7 +216,6 @@ const productsSeed: Product[] = [
     image: 'https://picsum.photos/seed/smash-p20/400/400',
     colorLabel: 'Чёрный',
     description: 'Размер S, для тренировок',
-    gender: 'womens',
     sizeLabel: 'S',
   },
 ];

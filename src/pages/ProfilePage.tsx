@@ -1,13 +1,24 @@
-import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useEffect, useLayoutEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { stringingOrders } from '../data/mockData';
 import StatusTracker from '../components/StatusTracker';
-import type { Product, ProductCategory, ProductCondition, ProductGender, UserContact, UserContactPlatform } from '../types';
+import type { Product, ProductCategory, ProductCondition, ProductFit, UserContact, UserContactPlatform } from '../types';
+import {
+  categoryHasFitField,
+  categoryHasSizeField,
+  FIT_FORM_OPTIONS,
+  normalizeProductFit,
+  SIZE_OPTIONS_BY_CATEGORY,
+} from '../utils/productCategoryFields';
+import { buildContactHref, CONTACT_PLATFORM_LABEL } from '../utils/contactLinks';
 import { ClipboardList, LogOut, Mail, Phone, Plus, ShoppingBag, ShoppingCart, SquarePen, Trash2, X } from 'lucide-react';
-import { deleteProfileListingById, loadProfileListings, saveProfileListings } from '../services/profileListings';
+import { useProfileListings } from '../context/ProfileListingsContext';
 
 type ProfileTab = 'listings' | 'cart' | 'orders' | 'edit';
+
+type ProfileLocationState = { editListingId?: number };
 
 type ProfileNavItem = {
   id: ProfileTab;
@@ -24,8 +35,8 @@ type ListingFormState = {
   description: string;
   image: string;
   imagePreviews: string[];
-  gender: '' | ProductGender;
   sizeLabel: string;
+  fit: ProductFit;
 };
 
 type EditProfileFormState = {
@@ -46,8 +57,29 @@ const contactPlatformOptions: ContactPlatformOption[] = [
   { value: 'viber', label: 'Viber' },
   { value: 'facebook', label: 'Facebook' },
   { value: 'whatsapp', label: 'WhatsApp' },
-  { value: 'other', label: 'Другое' },
 ];
+
+const MAX_SOCIAL_CONTACTS = 5;
+
+function isUserContactPlatform(value: string): value is UserContactPlatform {
+  return contactPlatformOptions.some(o => o.value === value);
+}
+
+/** Убирает дубликаты платформ, легаси «other» → telegram, не больше 5 */
+function normalizeContactsForEdit(contacts: UserContact[]): UserContact[] {
+  const seen = new Set<UserContactPlatform>();
+  const out: UserContact[] = [];
+  for (const c of contacts) {
+    const raw = c.platform as string;
+    const platform: UserContactPlatform =
+      raw === 'other' || !isUserContactPlatform(raw) ? 'telegram' : raw;
+    if (seen.has(platform)) continue;
+    seen.add(platform);
+    out.push({ ...c, platform });
+    if (out.length >= MAX_SOCIAL_CONTACTS) break;
+  }
+  return out;
+}
 
 const profileTabs: ProfileNavItem[] = [
   { id: 'listings', label: 'Мои объявления', icon: ShoppingBag },
@@ -81,18 +113,35 @@ const initialListingForm: ListingFormState = {
   description: '',
   image: '',
   imagePreviews: [],
-  gender: '',
   sizeLabel: '',
+  fit: 'unisex',
 };
 
-const createEmptyContact = (): UserContact => ({
-  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-  platform: 'telegram',
-  value: '',
-});
+function productToForm(p: Product): ListingFormState {
+  const previews = [p.image, ...(p.extraImages ?? [])].slice(0, 8);
+  return {
+    title: p.title,
+    category: p.category,
+    condition: p.condition,
+    price: String(p.price),
+    colorLabel: p.colorLabel ?? '',
+    description: p.description,
+    image: previews[0] ?? '',
+    imagePreviews: previews,
+    sizeLabel: p.sizeLabel ?? '',
+    fit: normalizeProductFit(p.fit),
+  };
+}
+
+function listingHasSellerSnapshot(p: Product): boolean {
+  return (
+    Boolean(p.sellerPhone?.trim()) ||
+    (p.sellerContacts?.some(c => c.value.trim().length > 0) ?? false)
+  );
+}
 
 const getContactPlatformLabel = (platform: UserContactPlatform): string =>
-  contactPlatformOptions.find(option => option.value === platform)?.label ?? 'Контакт';
+  CONTACT_PLATFORM_LABEL[platform] ?? 'Контакт';
 
 const getContactButtonClass = (platform: UserContactPlatform): string => {
   const base =
@@ -102,35 +151,7 @@ const getContactButtonClass = (platform: UserContactPlatform): string => {
   if (platform === 'viber') return `${base} bg-[#7360F2]`;
   if (platform === 'facebook') return `${base} bg-[#1877F2]`;
   if (platform === 'whatsapp') return `${base} bg-[#25D366]`;
-  return `${base} bg-neutral-700`;
-};
-
-const buildContactHref = (contact: UserContact): string => {
-  const trimmedValue = contact.value.trim();
-  if (!trimmedValue) return '#';
-  if (/^(https?:\/\/|mailto:)/i.test(trimmedValue)) return trimmedValue;
-
-  if (contact.platform === 'telegram') {
-    return `https://t.me/${trimmedValue.replace(/^@/, '').replace(/^\//, '')}`;
-  }
-
-  if (contact.platform === 'instagram') {
-    return `https://www.instagram.com/${trimmedValue.replace(/^@/, '').replace(/^\//, '')}`;
-  }
-
-  if (contact.platform === 'facebook') {
-    return `https://www.facebook.com/${trimmedValue.replace(/^@/, '').replace(/^\//, '')}`;
-  }
-
-  if (contact.platform === 'whatsapp') {
-    return `https://wa.me/${trimmedValue.replace(/\D/g, '')}`;
-  }
-
-  if (contact.platform === 'viber') {
-    return `viber://chat?number=${trimmedValue.replace(/[^\d+]/g, '')}`;
-  }
-
-  return `https://${trimmedValue}`;
+  return `${base} bg-neutral-600`;
 };
 
 const isProfileTab = (value: string | null): value is ProfileTab =>
@@ -152,10 +173,7 @@ function ProfileEmptyState({
   actionError?: string;
 }) {
   return (
-    <div className="flex min-h-[22rem] flex-col items-center justify-center border-2 border-black bg-white px-6 py-10 text-center sketch-shadow">
-      <div className="mb-6 flex h-20 w-20 items-center justify-center border-2 border-black bg-neutral-100 text-3xl font-black text-neutral-500">
-        ∅
-      </div>
+    <div className="flex min-h-[18rem] flex-col items-center justify-center border-2 border-black bg-white px-6 py-10 text-center sketch-shadow">
       <h3 className="text-2xl font-black tracking-tight">{title}</h3>
       <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600 sm:text-base">{description}</p>
       {actionTo ? (
@@ -181,72 +199,84 @@ function ProfileEmptyState({
 
 function ProfileListingCard({
   product,
+  onEdit,
   onDelete,
 }: {
   product: Product;
+  onEdit: (product: Product) => void;
   onDelete: (id: number) => void;
 }) {
+  const listingPath = `/profile/listing/${product.id}`;
   const openLabel = `${product.title} — открыть объявление`;
 
   return (
     <article className="relative flex flex-col overflow-hidden rounded-none border border-gray-300 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md hover:ring-2 hover:ring-primary/40">
-      <Link
-        to={`/profile/listing/${product.id}`}
-        className="absolute inset-0 z-[1]"
-        aria-label={openLabel}
-      />
-      <div className="relative z-[2] flex flex-1 flex-col pointer-events-none">
-        <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+      <div className="relative aspect-square w-full overflow-hidden bg-gray-100">
+        <Link
+          to={listingPath}
+          className="absolute inset-0 z-0 block outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+          aria-label={openLabel}
+        >
           <img
             src={product.image}
-            alt={product.title}
-            className="absolute inset-0 h-full w-full object-cover select-none"
+            alt=""
+            className="h-full w-full object-cover select-none"
             width={400}
             height={400}
             decoding="async"
             draggable={false}
             loading="lazy"
           />
-          <button
-            type="button"
-            onClick={event => {
-              event.preventDefault();
-              event.stopPropagation();
-              onDelete(product.id);
-            }}
-            className="pointer-events-auto absolute right-2 top-2 z-[3] flex h-10 w-10 items-center justify-center rounded-full border border-red-200/90 bg-white/95 text-red-600 shadow-sm outline-none transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-300"
-            aria-label={`Удалить объявление ${product.title}`}
-          >
-            <Trash2 size={18} strokeWidth={2.2} />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-1 border-t border-gray-200 p-3 sm:p-3.5">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
-          {categoryLabel[product.category]}
-          </p>
-          <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{product.title}</h3>
-          <p className="pt-0.5 text-base font-bold tabular-nums text-gray-900 sm:text-lg">
-            {product.price.toLocaleString('ro-MD')} MDL
-          </p>
-        </div>
+        </Link>
+        <button
+          type="button"
+          onClick={() => onEdit(product)}
+          className="absolute left-2 top-2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-black/15 bg-white/95 text-gray-900 shadow-md outline-none transition-colors hover:bg-primary/20 focus-visible:ring-2 focus-visible:ring-primary"
+          aria-label={`Редактировать объявление ${product.title}`}
+        >
+          <SquarePen size={18} strokeWidth={2.2} />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(product.id)}
+          className="absolute right-2 top-2 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-red-200/90 bg-white/95 text-red-600 shadow-md outline-none transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-300"
+          aria-label={`Удалить объявление ${product.title}`}
+        >
+          <Trash2 size={18} strokeWidth={2.2} />
+        </button>
       </div>
+
+      <Link
+        to={listingPath}
+        className="relative z-10 flex flex-col gap-1 border-t border-gray-200 p-3 sm:p-3.5"
+      >
+        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">
+          {categoryLabel[product.category]}
+        </p>
+        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{product.title}</h3>
+        <p className="pt-0.5 text-base font-bold tabular-nums text-gray-900 sm:text-lg">
+          {product.price.toLocaleString('ro-MD')} MDL
+        </p>
+      </Link>
     </article>
   );
 }
 
 export default function ProfilePage() {
   const { user, isAuthenticated, logout, updateProfile } = useAuth();
+  const { items: cartItems, count: cartCount, removeFromCart } = useCart();
+  const { listings: profileListings, addListing, updateListing, deleteListing } = useProfileListings();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<ProfileTab>(() => {
     const requestedTab = searchParams.get('tab');
     return isProfileTab(requestedTab) ? requestedTab : 'listings';
   });
   const [listingFormOpen, setListingFormOpen] = useState(false);
+  const [listingEditingId, setListingEditingId] = useState<number | null>(null);
   const [listingContactError, setListingContactError] = useState('');
   const [listingForm, setListingForm] = useState<ListingFormState>(initialListingForm);
-  const [profileListings, setProfileListings] = useState<Product[]>(() => loadProfileListings());
   const [editProfileForm, setEditProfileForm] = useState<EditProfileFormState>({
     name: '',
     email: '',
@@ -266,19 +296,79 @@ export default function ProfilePage() {
       name: user.name,
       email: user.email,
       phone: user.phone ?? '',
-      contacts: user.contacts ?? [],
+      contacts: normalizeContactsForEdit(user.contacts ?? []),
     });
   }, [user]);
-
-  useEffect(() => {
-    saveProfileListings(profileListings);
-  }, [profileListings]);
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
     const nextTab = isProfileTab(requestedTab) ? requestedTab : 'listings';
     setActiveTab(prev => (prev === nextTab ? prev : nextTab));
   }, [searchParams]);
+
+  const editQueryParam = searchParams.get('edit');
+
+  useLayoutEffect(() => {
+    if (!isAuthenticated || !user) return;
+
+    const fromState = (location.state as ProfileLocationState | null)?.editListingId;
+    const parsedQuery = editQueryParam ? Number.parseInt(editQueryParam, 10) : NaN;
+    let id =
+      Number.isFinite(parsedQuery) ? parsedQuery
+      : typeof fromState === 'number' && Number.isFinite(fromState) ? fromState
+      : NaN;
+
+    if (!Number.isFinite(id)) {
+      const raw = typeof window !== 'undefined' ? window.sessionStorage.getItem('sm-profile-edit-id') : null;
+      if (raw) {
+        window.sessionStorage.removeItem('sm-profile-edit-id');
+        const parsed = Number.parseInt(raw, 10);
+        if (Number.isFinite(parsed)) id = parsed;
+      }
+    }
+
+    if (!Number.isFinite(id)) return;
+
+    const listing = profileListings.find(l => l.id === id);
+    if (!listing) return;
+
+    const userHasContact =
+      Boolean(user.phone?.trim()) || user.contacts.some(c => c.value.trim().length > 0);
+    const canOpenEdit = userHasContact || listingHasSellerSnapshot(listing);
+    if (!canOpenEdit) {
+      setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы редактировать объявление.');
+      return;
+    }
+
+    setListingContactError('');
+    setListingForm(productToForm(listing));
+    setListingEditingId(id);
+    setListingFormOpen(true);
+    setActiveTab('listings');
+  }, [isAuthenticated, user, location.state, editQueryParam, profileListings]);
+
+  useEffect(() => {
+    if (!listingFormOpen) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById('profile-listing-form')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [listingFormOpen, listingEditingId]);
+
+  const stripEditFromUrl = () => {
+    if (!searchParams.get('edit')) return;
+    setSearchParams(
+      prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('edit');
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   if (!isAuthenticated || !user) return null;
 
@@ -302,11 +392,45 @@ export default function ProfilePage() {
     }
 
     setListingContactError('');
+    setListingForm(initialListingForm);
+    setListingEditingId(null);
+    setListingFormOpen(true);
+    stripEditFromUrl();
+  };
+
+  const handleEditListing = (product: Product) => {
+    if (!hasAnyContactData && !listingHasSellerSnapshot(product)) {
+      setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы редактировать объявление.');
+      return;
+    }
+    setListingContactError('');
+    setListingForm(productToForm(product));
+    setListingEditingId(product.id);
     setListingFormOpen(true);
   };
 
   const updateListingForm = <K extends keyof ListingFormState>(key: K, value: ListingFormState[K]) => {
     setListingForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleListingCategoryChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const next = event.target.value as ProductCategory;
+    setListingForm(prev => {
+      const prevHadSize = categoryHasSizeField(prev.category);
+      const nextHasSize = categoryHasSizeField(next);
+      let sizeLabel = prev.sizeLabel;
+      if (!nextHasSize) sizeLabel = '';
+      else if (!prevHadSize || prev.category !== next) {
+        const opts = SIZE_OPTIONS_BY_CATEGORY[next as 'shoes' | 'clothing' | 'socks'];
+        sizeLabel = opts.includes(prev.sizeLabel) ? prev.sizeLabel : '';
+      }
+      return {
+        ...prev,
+        category: next,
+        sizeLabel,
+        fit: categoryHasFitField(next) ? prev.fit : 'unisex',
+      };
+    });
   };
 
   const updateEditProfileForm = <K extends keyof EditProfileFormState>(
@@ -317,7 +441,23 @@ export default function ProfilePage() {
   };
 
   const addContactField = () => {
-    setEditProfileForm(prev => ({ ...prev, contacts: [...prev.contacts, createEmptyContact()] }));
+    setEditProfileForm(prev => {
+      if (prev.contacts.length >= MAX_SOCIAL_CONTACTS) return prev;
+      const occupied = new Set(prev.contacts.map(c => c.platform));
+      const free = contactPlatformOptions.find(o => !occupied.has(o.value));
+      if (!free) return prev;
+      return {
+        ...prev,
+        contacts: [
+          ...prev.contacts,
+          {
+            id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            platform: free.value,
+            value: '',
+          },
+        ],
+      };
+    });
   };
 
   const updateContactField = <K extends keyof UserContact>(
@@ -370,14 +510,35 @@ export default function ProfilePage() {
   const handleCreateListing = (event: FormEvent) => {
     event.preventDefault();
 
-    if (!hasAnyContactData) {
-      setListingFormOpen(false);
+    const existing =
+      listingEditingId !== null ? profileListings.find(l => l.id === listingEditingId) : undefined;
+    const canSave =
+      hasAnyContactData ||
+      (listingEditingId !== null && existing !== undefined && listingHasSellerSnapshot(existing));
+
+    if (!canSave) {
       setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы разместить объявление.');
       return;
     }
 
+    const phoneFromUser = user.phone?.trim() ?? '';
+    const contactsFromUser = normalizeContactsForEdit(user.contacts ?? [])
+      .filter(c => c.value.trim())
+      .map(({ platform, value }) => ({ platform, value: value.trim() }));
+
+    const phoneSnap =
+      phoneFromUser ||
+      (listingEditingId !== null ? existing?.sellerPhone?.trim() ?? '' : '');
+    const contactsSnap =
+      contactsFromUser.length > 0
+        ? contactsFromUser
+        : listingEditingId !== null && existing?.sellerContacts?.length
+          ? existing.sellerContacts
+          : undefined;
+
+    const listingId = listingEditingId ?? Date.now();
     const newListing: Product = {
-      id: Date.now(),
+      id: listingId,
       title: listingForm.title.trim(),
       category: listingForm.category,
       condition: listingForm.condition,
@@ -386,18 +547,28 @@ export default function ProfilePage() {
       extraImages: listingForm.imagePreviews.slice(1, 8),
       description: listingForm.description.trim(),
       colorLabel: listingForm.colorLabel.trim() || undefined,
-      gender: listingForm.gender || undefined,
-      sizeLabel: listingForm.sizeLabel.trim() || undefined,
+      sizeLabel:
+        categoryHasSizeField(listingForm.category) && listingForm.sizeLabel.trim()
+          ? listingForm.sizeLabel.trim()
+          : undefined,
+      fit: categoryHasFitField(listingForm.category) ? listingForm.fit : undefined,
+      sellerPhone: phoneSnap || undefined,
+      sellerContacts: contactsSnap && contactsSnap.length > 0 ? contactsSnap : undefined,
     };
 
-    setProfileListings(prev => [newListing, ...prev]);
+    if (listingEditingId !== null) {
+      updateListing(newListing);
+    } else {
+      addListing(newListing);
+    }
     setListingForm(initialListingForm);
+    setListingEditingId(null);
     setListingFormOpen(false);
+    stripEditFromUrl();
   };
 
   const handleDeleteListing = (id: number) => {
-    const nextListings = deleteProfileListingById(id);
-    setProfileListings(nextListings);
+    deleteListing(id);
   };
 
   const removeListingImage = (indexToRemove: number) => {
@@ -414,16 +585,18 @@ export default function ProfilePage() {
   const handleProfileSave = (event: FormEvent) => {
     event.preventDefault();
 
+    const contactsSaved = normalizeContactsForEdit(
+      editProfileForm.contacts.map(contact => ({
+        ...contact,
+        value: contact.value.trim(),
+      })),
+    ).filter(contact => contact.value.length > 0);
+
     updateProfile({
       name: editProfileForm.name.trim(),
       email: editProfileForm.email.trim(),
       phone: editProfileForm.phone.trim(),
-      contacts: editProfileForm.contacts
-        .map(contact => ({
-          ...contact,
-          value: contact.value.trim(),
-        }))
-        .filter(contact => contact.value.length > 0),
+      contacts: contactsSaved,
     });
   };
 
@@ -451,13 +624,74 @@ export default function ProfilePage() {
         </button>
       </div>
 
+      {listingContactError ? (
+        <div className="mb-6 border-2 border-black bg-amber-50 p-4 text-sm sketch-shadow-sm">
+          <p className="font-semibold text-neutral-900">{listingContactError}</p>
+          <Link
+            to="/profile?tab=edit"
+            className="mt-2 inline-block font-bold text-primary-dark underline decoration-2 underline-offset-2"
+          >
+            Указать контакты в профиле
+          </Link>
+        </div>
+      ) : null}
+
       {listingFormOpen && (
-        <form onSubmit={handleCreateListing} className="mb-6 border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
+        <form
+          id="profile-listing-form"
+          onSubmit={handleCreateListing}
+          className="mb-6 scroll-mt-24 border-2 border-black bg-white p-5 sketch-shadow sm:p-6"
+        >
           <div className="mb-6 border-b-2 border-black pb-4">
-            <h3 className="text-2xl font-black tracking-tight">Новое объявление</h3>
+            <h3 className="text-2xl font-black tracking-tight">
+              {listingEditingId !== null ? 'Редактировать объявление' : 'Новое объявление'}
+            </h3>
             <p className="mt-2 text-sm text-neutral-600">
-              Заполните данные объявления в формате проекта и сохраните его в личном кабинете.
+              {listingEditingId !== null
+                ? 'Изменения сохранятся в объявлении, в том числе на странице барахолки.'
+                : 'Заполните данные объявления в формате проекта и сохраните его в личном кабинете — оно появится в общем списке барахолки.'}
             </p>
+          </div>
+
+          <div className="mb-6 border-2 border-black bg-neutral-50 p-4 sketch-shadow-sm sm:p-5">
+            <h4 className="text-sm font-black uppercase tracking-wide text-neutral-800">Контакты в объявлении</h4>
+            <p className="mt-1.5 text-xs text-neutral-600">
+              С покупателями можно связаться по телефону и соцсетям из вашего профиля — они сохраняются вместе с
+              объявлением.
+            </p>
+            <ul className="mt-4 space-y-2 text-sm">
+              {user.phone?.trim() ? (
+                <li className="flex flex-wrap gap-2">
+                  <span className="font-bold text-neutral-600">Телефон:</span>
+                  <span className="font-semibold text-gray-900">{user.phone.trim()}</span>
+                </li>
+              ) : (
+                <li className="text-neutral-600">Телефон в профиле не указан.</li>
+              )}
+              {normalizeContactsForEdit(user.contacts ?? []).filter(c => c.value.trim()).length > 0 ? (
+                <li className="pt-1">
+                  <span className="font-bold text-neutral-600">Соцсети:</span>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {normalizeContactsForEdit(user.contacts ?? [])
+                      .filter(c => c.value.trim())
+                      .map(c => (
+                        <li key={c.id}>
+                          <a
+                            href={buildContactHref(c)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={getContactButtonClass(c.platform)}
+                          >
+                            {getContactPlatformLabel(c.platform)}
+                          </a>
+                        </li>
+                      ))}
+                  </ul>
+                </li>
+              ) : (
+                <li className="text-neutral-600">Дополнительные контакты в профиле не указаны.</li>
+              )}
+            </ul>
           </div>
 
           <div className="space-y-5">
@@ -468,7 +702,7 @@ export default function ProfilePage() {
               <select
                 id="listing-category"
                 value={listingForm.category}
-                onChange={event => updateListingForm('category', event.target.value as ProductCategory)}
+                onChange={handleListingCategoryChange}
                 className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none"
               >
                 {Object.entries(categoryLabel).map(([value, label]) => (
@@ -595,36 +829,46 @@ export default function ProfilePage() {
               ) : null}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-[15rem_minmax(0,1fr)] sm:items-center">
-              <label htmlFor="listing-gender" className="text-sm font-bold sm:text-base">
-                Пол
-              </label>
-              <select
-                id="listing-gender"
-                value={listingForm.gender}
-                onChange={event => updateListingForm('gender', event.target.value as '' | ProductGender)}
-                className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none"
-              >
-                <option value="">Не указывать</option>
-                <option value="mens">Мужское</option>
-                <option value="womens">Женское</option>
-                <option value="unisex">Унисекс</option>
-              </select>
-            </div>
+            {categoryHasSizeField(listingForm.category) ? (
+              <div className="grid gap-3 sm:grid-cols-[15rem_minmax(0,1fr)] sm:items-center">
+                <label htmlFor="listing-size" className="text-sm font-bold sm:text-base">
+                  Размер
+                </label>
+                <select
+                  id="listing-size"
+                  value={listingForm.sizeLabel}
+                  onChange={event => updateListingForm('sizeLabel', event.target.value)}
+                  className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none"
+                >
+                  <option value="">Не указано</option>
+                  {SIZE_OPTIONS_BY_CATEGORY[listingForm.category as 'shoes' | 'clothing' | 'socks'].map(sz => (
+                    <option key={sz} value={sz}>
+                      {sz}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
 
-            <div className="grid gap-3 sm:grid-cols-[15rem_minmax(0,1fr)] sm:items-center">
-              <label htmlFor="listing-size" className="text-sm font-bold sm:text-base">
-                Размер
-              </label>
-              <input
-                id="listing-size"
-                type="text"
-                value={listingForm.sizeLabel}
-                onChange={event => updateListingForm('sizeLabel', event.target.value)}
-                placeholder="Например, 42, M или 39-42"
-                className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none placeholder:font-normal placeholder:text-neutral-400"
-              />
-            </div>
+            {categoryHasFitField(listingForm.category) ? (
+              <div className="grid gap-3 sm:grid-cols-[15rem_minmax(0,1fr)] sm:items-center">
+                <label htmlFor="listing-fit" className="text-sm font-bold sm:text-base">
+                  Для кого
+                </label>
+                <select
+                  id="listing-fit"
+                  value={listingForm.fit}
+                  onChange={event => updateListingForm('fit', event.target.value as ProductFit)}
+                  className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none"
+                >
+                  {FIT_FORM_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
 
             <div className="grid gap-3 sm:grid-cols-[15rem_minmax(0,1fr)]">
               <label htmlFor="listing-description" className="text-sm font-bold sm:pt-3 sm:text-base">
@@ -647,13 +891,15 @@ export default function ProfilePage() {
               type="submit"
               className="border-2 border-black bg-primary px-5 py-3 font-bold text-black sketch-shadow-sm transition-colors hover:bg-primary-dark"
             >
-              Сохранить объявление
+              {listingEditingId !== null ? 'Сохранить изменения' : 'Сохранить объявление'}
             </button>
             <button
               type="button"
               onClick={() => {
                 setListingForm(initialListingForm);
+                setListingEditingId(null);
                 setListingFormOpen(false);
+                stripEditFromUrl();
               }}
               className="border-2 border-black bg-white px-5 py-3 font-bold text-black transition-colors hover:bg-neutral-100"
             >
@@ -666,11 +912,10 @@ export default function ProfilePage() {
       {!listingFormOpen &&
         (profileListings.length === 0 ? (
           <ProfileEmptyState
-            title="Вы ещё не разместили ни одного объявления."
+            title="Вы ещё не разместили ни одного объявления"
             description="Заполните форму и первое объявление сразу появится в вашем личном кабинете."
             actionLabel="Добавить объявление"
             onAction={handleOpenListingForm}
-            actionError={listingContactError}
           />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -678,6 +923,7 @@ export default function ProfilePage() {
               <ProfileListingCard
                 key={product.id}
                 product={product}
+                onEdit={handleEditListing}
                 onDelete={handleDeleteListing}
               />
             ))}
@@ -694,14 +940,50 @@ export default function ProfilePage() {
         <section>
           <div className="mb-5 border-b-2 border-black pb-4">
             <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Корзина</h2>
+            {cartCount > 0 && (
+              <p className="mt-2 text-sm text-neutral-600">
+                Товаров: <span className="font-black tabular-nums text-gray-900">{cartCount}</span>
+              </p>
+            )}
           </div>
 
-          <ProfileEmptyState
-            title="В корзине пока ничего нет."
-            description="У нас ещё нет общей сохранённой корзины для профиля, поэтому здесь пока пусто."
-            actionLabel="Перейти в барахолку"
-            actionTo="/market"
-          />
+          {cartCount === 0 ? (
+            <ProfileEmptyState
+              title="В корзине пока ничего нет."
+              description="Добавляйте товары с карточек в барахолке — список сохраняется в этом браузере."
+              actionLabel="Перейти в барахолку"
+              actionTo="/market"
+            />
+          ) : (
+            <ul className="space-y-3">
+              {cartItems.map(line => (
+                <li
+                  key={line.id}
+                  className="flex flex-wrap items-start gap-3 border-2 border-black bg-white p-4 sketch-shadow sm:flex-nowrap sm:items-center sm:justify-between sm:p-5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      to={`/market/listing/${line.id}`}
+                      className="text-base font-black text-gray-900 underline decoration-2 underline-offset-2 hover:text-primary-dark"
+                    >
+                      {line.title}
+                    </Link>
+                    <p className="mt-1 text-sm tabular-nums text-neutral-700">
+                      {line.price.toLocaleString('ro-MD')} MDL
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeFromCart(line.id)}
+                    className="inline-flex shrink-0 items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-wide text-gray-900 transition-colors hover:bg-neutral-100"
+                  >
+                    <Trash2 className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                    Убрать
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       );
     }
@@ -781,13 +1063,19 @@ export default function ProfilePage() {
 
             <div className="sm:col-span-2">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <span className="block text-[11px] font-black uppercase tracking-[0.24em] text-neutral-500">
-                  Дополнительные контакты
-                </span>
+                <div>
+                  <span className="block text-[11px] font-black uppercase tracking-[0.24em] text-neutral-500">
+                    Дополнительные контакты
+                  </span>
+                  <p className="mt-1 max-w-xl text-xs text-neutral-600">
+                    До {MAX_SOCIAL_CONTACTS} соцсетей; одну и ту же сеть нельзя указать дважды.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={addContactField}
-                  className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-neutral-100"
+                  disabled={editProfileForm.contacts.length >= MAX_SOCIAL_CONTACTS}
+                  className="inline-flex items-center gap-2 border-2 border-black bg-white px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   <Plus size={14} />
                   Добавить контакт
@@ -796,7 +1084,14 @@ export default function ProfilePage() {
 
               {editProfileForm.contacts.length > 0 ? (
                 <div className="space-y-3">
-                  {editProfileForm.contacts.map(contact => (
+                  {editProfileForm.contacts.map(contact => {
+                    const usedElsewhere = new Set(
+                      editProfileForm.contacts.filter(c => c.id !== contact.id).map(c => c.platform),
+                    );
+                    const platformOptions = contactPlatformOptions.filter(
+                      opt => opt.value === contact.platform || !usedElsewhere.has(opt.value),
+                    );
+                    return (
                     <div
                       key={contact.id}
                       className="grid gap-3 border-2 border-black bg-neutral-50 p-3 sm:grid-cols-[12rem_minmax(0,1fr)_auto] sm:items-center"
@@ -808,7 +1103,7 @@ export default function ProfilePage() {
                         }
                         className="w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none"
                       >
-                        {contactPlatformOptions.map(option => (
+                        {platformOptions.map(option => (
                           <option key={option.value} value={option.value}>
                             {option.label}
                           </option>
@@ -832,7 +1127,8 @@ export default function ProfilePage() {
                         <X size={16} />
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-black/40 bg-neutral-50 px-4 py-5 text-sm text-neutral-600">
@@ -856,7 +1152,7 @@ export default function ProfilePage() {
                   name: user.name,
                   email: user.email,
                   phone: user.phone ?? '',
-                  contacts: user.contacts ?? [],
+                  contacts: normalizeContactsForEdit(user.contacts ?? []),
                 })
               }
               className="border-2 border-black bg-white px-5 py-3 font-bold text-black transition-colors hover:bg-neutral-100"

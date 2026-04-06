@@ -1,40 +1,35 @@
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { deleteProfileListingById, getProfileListingById } from '../services/profileListings';
-import type { Product } from '../types';
-
-const categoryLabel: Record<Product['category'], string> = {
-  rackets: 'Ракетки',
-  shoes: 'Обувь',
-  shuttlecocks: 'Воланы',
-  strings: 'Струны для перетяжки',
-  bags: 'Сумки и чехлы',
-  clothing: 'Одежда',
-  accessories: 'Аксессуары',
-  grips: 'Обмотки',
-  knee_braces: 'Тейпы и бандажи',
-  socks: 'Носки',
-  nets_stands: 'Сетки и стойки',
-  court_inventory: 'Инвентарь для зала',
-  other: 'Другое',
-};
-
-const conditionLabel: Record<Product['condition'], string> = {
-  new: 'Новое',
-  used: 'Б/У',
-};
+import { ArrowLeft, SquarePen, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useProfileListings } from '../context/ProfileListingsContext';
+import {
+  buildContactHrefFromSnapshot,
+  CONTACT_PLATFORM_LABEL,
+  socialButtonClassForPlatform,
+  telHref,
+} from '../utils/contactLinks';
+import { buildListingGalleryUrls } from '../utils/listingDetailSpecs';
+import { ListingDetailMedia } from '../components/listing/ListingDetailMedia';
+import { ListingDetailSpecsPanel } from '../components/listing/ListingDetailSpecsPanel';
 
 export default function ProfileListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const numericId = id ? Number.parseInt(id, 10) : NaN;
-  const product = Number.isFinite(numericId) ? getProfileListingById(numericId) : undefined;
-  const galleryUrls = useMemo(
-    () => (product ? [product.image, ...(product.extraImages ?? []).slice(0, 7)] : []),
-    [product],
-  );
+  const { listings, deleteListing } = useProfileListings();
+  const product = Number.isFinite(numericId) ? listings.find(p => p.id === numericId) : undefined;
+
+  const galleryUrls = useMemo(() => (product ? buildListingGalleryUrls(product) : []), [product]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [contactsOpen, setContactsOpen] = useState(false);
+
+  const hasSellerContacts =
+    Boolean(product?.sellerPhone?.trim()) || (product?.sellerContacts?.length ?? 0) > 0;
+
+  useEffect(() => {
+    setActiveIndex(0);
+    setContactsOpen(false);
+  }, [numericId]);
 
   if (!product) {
     return (
@@ -50,11 +45,8 @@ export default function ProfileListingDetailPage() {
     );
   }
 
-  const showNav = galleryUrls.length > 1;
-  const activeSrc = galleryUrls[activeIndex] ?? product.image;
-
   const handleDelete = () => {
-    deleteProfileListingById(product.id);
+    deleteListing(product.id);
     navigate('/profile');
   };
 
@@ -69,135 +61,117 @@ export default function ProfileListingDetailPage() {
           К моим объявлениям
         </Link>
 
-        <h1 className="mb-8 text-xl font-black tracking-tight sm:text-2xl">{product.title}</h1>
-
-        <div className="mb-6">
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="inline-flex items-center gap-2 border-2 border-black bg-white px-4 py-2 text-sm font-bold text-red-600 sketch-shadow-sm transition-colors hover:bg-red-50"
-          >
-            <Trash2 size={16} strokeWidth={2.2} />
-            Удалить объявление
-          </button>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+          <h1 className="min-w-0 flex-1 text-xl font-black tracking-tight sm:text-2xl">{product.title}</h1>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <Link
+              to={`/market/listing/${product.id}`}
+              className="inline-flex items-center gap-2 border-2 border-black bg-primary px-3 py-2 text-xs font-bold text-black sketch-shadow-sm transition-colors hover:bg-primary-dark sm:text-sm"
+            >
+              Смотреть на барахолке
+            </Link>
+            <Link
+              to={`/profile?edit=${product.id}`}
+              onClick={() => {
+                try {
+                  window.sessionStorage.setItem('sm-profile-edit-id', String(product.id));
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3 py-2 text-xs font-bold text-gray-900 sketch-shadow-sm transition-colors hover:bg-neutral-100 sm:text-sm"
+            >
+              <SquarePen size={16} strokeWidth={2.2} aria-hidden />
+              Редактировать
+            </Link>
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="inline-flex items-center gap-1.5 border-2 border-black bg-white px-3 py-2 text-xs font-bold text-red-600 sketch-shadow-sm transition-colors hover:bg-red-50 sm:text-sm"
+            >
+              <Trash2 size={16} strokeWidth={2.2} />
+              Удалить
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[auto_minmax(0,1fr)] lg:gap-x-10">
-          <div className="flex min-h-0 w-full min-w-0 shrink-0 gap-3 sm:gap-4 lg:max-w-[min(100%,520px)] lg:items-stretch">
-            {showNav ? (
-              <div className="flex shrink-0 flex-col gap-2 sm:gap-2.5">
-                {galleryUrls.map((src, index) => (
-                  <button
-                    key={`${src}-${index}`}
-                    type="button"
-                    onClick={() => setActiveIndex(index)}
-                    className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-md border-2 border-black bg-white sm:h-14 sm:w-14 ${
-                      activeIndex === index ? 'ring-2 ring-primary ring-offset-2 ring-offset-[#e8e8e8]' : ''
-                    }`}
-                    aria-label={`Фото ${index + 1} из ${galleryUrls.length}`}
-                  >
-                    <img src={src} alt="" className="h-full w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            ) : null}
+        <div className="flex flex-col gap-8 lg:grid lg:min-h-0 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-stretch lg:gap-x-10 lg:gap-y-0">
+          <ListingDetailMedia
+            galleryUrls={galleryUrls}
+            activeIndex={activeIndex}
+            onActiveIndexChange={setActiveIndex}
+            productTitle={product.title}
+          />
 
-            <div className="relative min-h-[320px] min-w-0 flex-1 overflow-hidden rounded-md border-2 border-black bg-gray-100">
-            <img
-              src={activeSrc}
-              alt={product.title}
-              className="h-full w-full object-cover"
-              width={900}
-              height={900}
-            />
-              {showNav ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setActiveIndex(index => (index - 1 + galleryUrls.length) % galleryUrls.length)
-                    }
-                    className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border-2 border-black bg-white/95 text-black hover:bg-neutral-100"
-                    aria-label="Предыдущее фото"
-                  >
-                    <ChevronLeft size={22} strokeWidth={2.5} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveIndex(index => (index + 1) % galleryUrls.length)}
-                    className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center border-2 border-black bg-white/95 text-black hover:bg-neutral-100"
-                    aria-label="Следующее фото"
-                  >
-                    <ChevronRight size={22} strokeWidth={2.5} />
-                  </button>
-                  <span className="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded border border-black bg-white/95 px-2 py-0.5 text-[10px] font-bold tabular-nums text-neutral-700">
-                    {activeIndex + 1} / {galleryUrls.length}
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:min-h-0 lg:h-full lg:w-full lg:min-w-0">
+            <div className="flex shrink-0 flex-col gap-3">
+              <div className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3">
+                <div className="inline-flex max-w-[13rem] min-w-0 flex-col items-center rounded-full border-2 border-black bg-white px-4 py-2 shadow-[3px_3px_0_0_#000] ring-1 ring-inset ring-black/[0.06] sm:px-5 sm:py-2.5">
+                  <span className="text-[9px] font-black uppercase tracking-[0.22em] text-neutral-500">Цена</span>
+                  <span className="mt-0.5 text-center text-base font-black tabular-nums leading-none tracking-tight text-gray-900 sm:text-lg">
+                    {product.price.toLocaleString('ro-MD')} MDL
                   </span>
-                </>
-              ) : null}
-            </div>
-          </div>
+                </div>
 
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <p className="mb-2 inline-block border-b border-dashed border-black/30 pb-1 text-[10px] font-black uppercase tracking-[0.22em] text-neutral-500">
-                  {categoryLabel[product.category]}
-                </p>
-                <h2 className="text-2xl font-black tracking-tight">{product.title}</h2>
+                {hasSellerContacts ? (
+                  <button
+                    type="button"
+                    onClick={() => setContactsOpen(o => !o)}
+                    aria-expanded={contactsOpen}
+                    className="ml-auto shrink-0 border-2 border-black bg-primary px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-black shadow-[2px_2px_0_0_#000] hover:bg-[#00C853] sm:px-3.5 sm:py-2 sm:text-xs"
+                  >
+                    {contactsOpen ? 'Скрыть контакты' : 'Показать контакты продавца'}
+                  </button>
+                ) : (
+                  <span className="ml-auto max-w-[12rem] shrink-0 text-right text-[10px] font-bold uppercase leading-snug tracking-wide text-neutral-500 sm:text-xs">
+                    Контакты не указаны
+                  </span>
+                )}
               </div>
 
-              <div className="inline-flex min-w-[9rem] flex-col items-center rounded-full border-2 border-black bg-white px-4 py-2 shadow-[3px_3px_0_0_#000]">
-                <span className="text-[9px] font-black uppercase tracking-[0.22em] text-neutral-500">Цена</span>
-                <span className="mt-0.5 text-lg font-black tabular-nums">{product.price} MDL</span>
+              <div className="h-[7rem] w-full shrink-0">
+                {contactsOpen && hasSellerContacts ? (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-2 overflow-y-auto border-2 border-black bg-white px-3 py-2.5 sketch-shadow-sm sm:gap-2.5 sm:px-4">
+                    {product.sellerPhone?.trim() ? (
+                      <div className="flex w-full shrink-0 items-center gap-2">
+                        <div className="h-px min-w-0 flex-1 border-t border-dashed border-neutral-600" aria-hidden />
+                        <a
+                          href={telHref(product.sellerPhone)}
+                          className="shrink-0 text-sm font-black tabular-nums text-gray-900 underline decoration-2 underline-offset-2 hover:text-primary"
+                        >
+                          {product.sellerPhone.trim()}
+                        </a>
+                        <div className="h-px min-w-0 flex-1 border-t border-dashed border-neutral-600" aria-hidden />
+                      </div>
+                    ) : null}
+                    {product.sellerContacts && product.sellerContacts.length > 0 ? (
+                      <div className="flex w-full flex-wrap items-center justify-center gap-2">
+                        {product.sellerContacts.map((c, i) => (
+                          <a
+                            key={`${c.platform}-${i}`}
+                            href={buildContactHrefFromSnapshot(c)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={socialButtonClassForPlatform(c.platform)}
+                          >
+                            {CONTACT_PLATFORM_LABEL[c.platform]}
+                          </a>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
 
-            <section className="border-2 border-black bg-white p-4 sketch-shadow-sm" aria-labelledby="profile-listing-specs">
-              <h2
-                id="profile-listing-specs"
-                className="mb-3 text-center text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600"
-              >
-                Основные характеристики
-              </h2>
-
-              <dl className="space-y-0 text-sm">
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 py-2">
-                  <dt className="font-bold text-neutral-600">Категория</dt>
-                  <dd className="font-semibold text-gray-900">{categoryLabel[product.category]}</dd>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 py-2">
-                  <dt className="font-bold text-neutral-600">Состояние</dt>
-                  <dd className="font-semibold text-gray-900">{conditionLabel[product.condition]}</dd>
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 py-2">
-                  <dt className="font-bold text-neutral-600">Цвет</dt>
-                  <dd className="font-semibold text-gray-900">{product.colorLabel ?? '—'}</dd>
-                </div>
-                {product.gender ? (
-                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-200 py-2">
-                    <dt className="font-bold text-neutral-600">Пол</dt>
-                    <dd className="font-semibold text-gray-900">
-                      {product.gender === 'mens'
-                        ? 'Мужское'
-                        : product.gender === 'womens'
-                          ? 'Женское'
-                          : 'Унисекс'}
-                    </dd>
-                  </div>
-                ) : null}
-                {product.sizeLabel ? (
-                  <div className="flex flex-wrap items-center justify-between gap-4 py-2">
-                    <dt className="font-bold text-neutral-600">Размер</dt>
-                    <dd className="font-semibold text-gray-900">{product.sizeLabel}</dd>
-                  </div>
-                ) : null}
-              </dl>
-            </section>
+            <ListingDetailSpecsPanel product={product} headingId="profile-listing-specs" />
           </div>
         </div>
 
-        <section className="mt-10 rounded-md border-2 border-black bg-white p-4 sketch-shadow sm:p-6" aria-labelledby="profile-listing-desc">
+        <section
+          className="mt-10 border-2 border-black bg-white p-4 sm:p-6 sketch-shadow rounded-md"
+          aria-labelledby="profile-listing-desc"
+        >
           <h2
             id="profile-listing-desc"
             className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600"

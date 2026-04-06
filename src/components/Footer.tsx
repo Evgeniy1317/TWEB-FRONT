@@ -63,38 +63,55 @@ export default function Footer() {
 
   return (
     <footer className="mt-auto border-t border-white/[0.08] bg-[#0e1117]">
-      <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10 sm:py-9 lg:flex lg:items-center lg:justify-between lg:gap-12 lg:py-10">
-        <Link
-          to="/"
-          className="group mx-auto mb-6 flex w-fit items-center gap-2.5 lg:mx-0 lg:mb-0 lg:shrink-0"
-        >
-          <img
-            src="/media/images/background-removed.png"
-            alt="SmashMarket"
-            className="h-10 w-10 object-contain opacity-95 transition-opacity group-hover:opacity-100"
-            width={40}
-            height={40}
-            decoding="async"
-          />
-          <span className="text-[17px] font-semibold tracking-tight text-white/95 sm:text-lg">
-            Smash<span className="text-primary">Market</span>
-          </span>
-        </Link>
+      <div className="mx-auto flex max-w-6xl flex-col items-stretch gap-6 px-6 py-8 sm:px-10 sm:py-9 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:py-10">
+        <div className="flex flex-col items-center gap-4 lg:flex-row lg:items-center lg:gap-6">
+          <Link
+            to="/"
+            className="group flex w-fit shrink-0 items-center gap-2.5"
+          >
+            <img
+              src="/media/images/background-removed.png"
+              alt="SmashMarket"
+              className="h-10 w-10 object-contain opacity-95 transition-opacity group-hover:opacity-100"
+              width={40}
+              height={40}
+              decoding="async"
+            />
+            <span className="text-[17px] font-semibold tracking-tight text-white/95 sm:text-lg">
+              Smash<span className="text-primary">Market</span>
+            </span>
+          </Link>
 
-        <nav
-          className="mb-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-[14px] lg:mb-0 lg:flex-1 lg:justify-center lg:gap-x-6 lg:text-[15px]"
-          aria-label="Навигация в подвале"
-        >
-          {footerLinks.map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              className="text-white/60 transition-colors hover:text-primary"
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
+          <div
+            className="h-px w-full max-w-[14rem] shrink-0 bg-white/20 lg:hidden"
+            aria-hidden
+          />
+
+          <div
+            className="hidden h-10 w-px shrink-0 bg-white/25 lg:block"
+            role="separator"
+            aria-hidden
+          />
+
+          <nav
+            className="flex flex-wrap items-center justify-center gap-y-2 text-[14px] lg:text-[15px]"
+            aria-label="Навигация в подвале"
+          >
+            {footerLinks.map(({ to, label }, index) => (
+              <span key={to} className="inline-flex items-center">
+                {index > 0 ? (
+                  <span
+                    className="mx-2.5 h-4 w-px shrink-0 bg-white/25 sm:mx-3.5"
+                    aria-hidden
+                  />
+                ) : null}
+                <Link to={to} className="text-white/60 transition-colors hover:text-primary">
+                  {label}
+                </Link>
+              </span>
+            ))}
+          </nav>
+        </div>
 
         <div className="flex items-center justify-center gap-5 lg:shrink-0 lg:justify-end">
           <img

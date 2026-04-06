@@ -1,22 +1,11 @@
 import { LayoutGrid, SlidersHorizontal } from 'lucide-react';
+import type { ProductFit } from '../types';
+import { FIT_FORM_OPTIONS, SIZE_OPTIONS_BY_CATEGORY } from '../utils/productCategoryFields';
 
 export type MarketConditionFilter = 'all' | 'new' | 'used';
 export type MarketSortOption = 'default' | 'price_asc' | 'price_desc';
-export type MarketGenderFilter = 'all' | 'mens' | 'womens';
 
 type ApparelCategory = 'shoes' | 'clothing' | 'socks';
-
-const APPAREL_SIZE_CHIPS: Record<ApparelCategory, string[]> = {
-  shoes: ['39', '40', '41', '42', '43', '44', '45'],
-  clothing: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
-  socks: ['35-38', '39-42', '43-46'],
-};
-
-const genderOptions: { id: MarketGenderFilter; label: string }[] = [
-  { id: 'all', label: 'Все' },
-  { id: 'mens', label: 'Мужские' },
-  { id: 'womens', label: 'Женские' },
-];
 
 type MarketFiltersPanelProps = {
   priceMin: string;
@@ -33,12 +22,14 @@ type MarketFiltersPanelProps = {
   onShowAllCategories: () => void;
   /** Подсветка «Все категории», когда выбран полный каталог */
   allCategoriesActive?: boolean;
-  /** Показать пол и размер (обувь, одежда, носки) */
+  /** Показать размер (обувь, одежда, носки) */
   apparelFilterCategory?: ApparelCategory | null;
-  gender: MarketGenderFilter;
-  onGenderChange: (v: MarketGenderFilter) => void;
   sizeFilter: string;
   onSizeFilterChange: (v: string) => void;
+  /** Фильтр «для кого» (обувь, одежда, носки, сумки, бандажи; на «все категории» — по полю fit у подходящих товаров) */
+  showFitFilter?: boolean;
+  fitFilter: ProductFit | '';
+  onFitFilterChange: (v: ProductFit | '') => void;
 };
 
 const sortOptions: { id: MarketSortOption; label: string }[] = [
@@ -67,12 +58,18 @@ function FilterFields({
   onShowAllCategories,
   allCategoriesActive = false,
   apparelFilterCategory = null,
-  gender,
-  onGenderChange,
   sizeFilter,
   onSizeFilterChange,
+  showFitFilter = false,
+  fitFilter,
+  onFitFilterChange,
 }: MarketFiltersPanelProps) {
-  const sizeChips = apparelFilterCategory ? APPAREL_SIZE_CHIPS[apparelFilterCategory] : [];
+  const sizeChips = apparelFilterCategory ? SIZE_OPTIONS_BY_CATEGORY[apparelFilterCategory] : [];
+
+  const fitChips: { id: ProductFit | ''; label: string }[] = [
+    { id: '', label: 'Любой' },
+    ...FIT_FORM_OPTIONS.map(o => ({ id: o.value, label: o.label })),
+  ];
 
   return (
     <div className="space-y-5">
@@ -92,24 +89,7 @@ function FilterFields({
 
       {apparelFilterCategory ? (
         <div className="border-t-2 border-dashed border-neutral-200 pt-5">
-          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">Пол</p>
-          <div className="flex flex-col gap-1.5">
-            {genderOptions.map(opt => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => onGenderChange(opt.id)}
-                className={`w-full border-2 border-black px-2.5 py-2 text-left text-xs font-bold transition-colors ${
-                  gender === opt.id
-                    ? 'bg-primary text-black sketch-shadow-sm'
-                    : 'bg-white hover:bg-neutral-100'
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <p className="mb-2 mt-5 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">Размер</p>
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">Размер</p>
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
@@ -130,6 +110,26 @@ function FilterFields({
                 }`}
               >
                 {sz}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {showFitFilter ? (
+        <div className="border-t-2 border-dashed border-neutral-200 pt-5">
+          <p className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">Для кого</p>
+          <div className="flex flex-wrap gap-1.5">
+            {fitChips.map(chip => (
+              <button
+                key={chip.id === '' ? 'any' : chip.id}
+                type="button"
+                onClick={() => onFitFilterChange(chip.id)}
+                className={`border-2 border-black px-2 py-1 text-[10px] font-black uppercase tracking-wide ${
+                  fitFilter === chip.id ? 'bg-primary sketch-shadow-sm' : 'bg-white hover:bg-neutral-100'
+                }`}
+              >
+                {chip.label}
               </button>
             ))}
           </div>
@@ -249,10 +249,11 @@ export default function MarketFiltersPanel(props: MarketFiltersPanelProps) {
     onShowAllCategories,
     allCategoriesActive = false,
     apparelFilterCategory = null,
-    gender,
-    onGenderChange,
     sizeFilter,
     onSizeFilterChange,
+    showFitFilter = false,
+    fitFilter,
+    onFitFilterChange,
   } = props;
 
   return (
@@ -275,10 +276,11 @@ export default function MarketFiltersPanel(props: MarketFiltersPanelProps) {
         onShowAllCategories={onShowAllCategories}
         allCategoriesActive={allCategoriesActive}
         apparelFilterCategory={apparelFilterCategory}
-        gender={gender}
-        onGenderChange={onGenderChange}
         sizeFilter={sizeFilter}
         onSizeFilterChange={onSizeFilterChange}
+        showFitFilter={showFitFilter}
+        fitFilter={fitFilter}
+        onFitFilterChange={onFitFilterChange}
       />
     </aside>
   );

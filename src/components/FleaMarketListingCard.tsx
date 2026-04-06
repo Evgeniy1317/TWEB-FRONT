@@ -1,5 +1,10 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '../types';
+import {
+  categoryHasFitField,
+  categoryHasSizeField,
+  fitLabel,
+} from '../utils/productCategoryFields';
 
 const CART_ICON_SRC = '/media/images/free-icon-shopping-cart-of-checkered-design-34627.png';
 
@@ -22,12 +27,15 @@ const categoryLabel: Record<Product['category'], string> = {
 interface FleaMarketListingCardProps {
   product: Product;
   inCart: boolean;
-  onToggleCart: (id: number) => void;
+  /** Гость: кнопка ведёт на вход */
+  cartRequiresAuth?: boolean;
+  onToggleCart: (product: Product) => void;
 }
 
 export default function FleaMarketListingCard({
   product,
   inCart,
+  cartRequiresAuth = false,
   onToggleCart,
 }: FleaMarketListingCardProps) {
   const listingPath = `/market/listing/${product.id}`;
@@ -57,15 +65,26 @@ export default function FleaMarketListingCard({
             onClick={e => {
               e.preventDefault();
               e.stopPropagation();
-              onToggleCart(product.id);
+              onToggleCart(product);
             }}
             className={`absolute right-2 top-2 z-[3] flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-0 pointer-events-auto ${
               inCart
                 ? 'border-primary bg-primary'
                 : 'border-gray-200/90 bg-white/95'
             }`}
-            aria-label={inCart ? 'Убрать из корзины' : 'В корзину'}
-            aria-pressed={inCart}
+            title={
+              cartRequiresAuth
+                ? 'Войдите или зарегистрируйтесь, чтобы добавлять товары в корзину'
+                : undefined
+            }
+            aria-label={
+              cartRequiresAuth
+                ? 'Войдите, чтобы добавить товар в корзину'
+                : inCart
+                  ? 'Убрать из корзины'
+                  : 'В корзину'
+            }
+            aria-pressed={cartRequiresAuth ? undefined : inCart}
           >
             <img
               src={CART_ICON_SRC}
@@ -85,6 +104,17 @@ export default function FleaMarketListingCard({
             {categoryLabel[product.category]}
           </p>
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{product.title}</h3>
+          {(categoryHasSizeField(product.category) && product.sizeLabel) ||
+          categoryHasFitField(product.category) ? (
+            <p className="mt-0.5 line-clamp-1 text-[10px] font-bold text-neutral-500">
+              {[
+                categoryHasSizeField(product.category) && product.sizeLabel ? `Размер ${product.sizeLabel}` : null,
+                categoryHasFitField(product.category) ? fitLabel(product.fit) : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          ) : null}
           <p className="pt-0.5 text-base font-bold tabular-nums text-gray-900 sm:text-lg">
             {product.price.toLocaleString('ro-MD')} MDL
           </p>

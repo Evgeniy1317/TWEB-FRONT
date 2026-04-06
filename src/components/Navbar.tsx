@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, type MouseEvent } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import {
   ShoppingBag,
   Wrench,
@@ -12,6 +13,7 @@ import {
   LogIn,
   UserPlus,
   Globe,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -44,9 +46,12 @@ export default function Navbar() {
   /** Только /market: прячем шапку при скролле вниз, показываем при скролле вверх */
   const [marketNavHidden, setMarketNavHidden] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
+  const cartWrapRef = useRef<HTMLDivElement>(null);
   const marketScrollLastY = useRef(0);
   const mobileOpenRef = useRef(false);
   const { isAuthenticated } = useAuth();
+  const { items, count, removeFromCart } = useCart();
+  const [cartOpen, setCartOpen] = useState(false);
   const location = useLocation();
   const isHome = location.pathname === '/';
   const isMarket = location.pathname === '/market' || location.pathname.startsWith('/market/');
@@ -95,6 +100,9 @@ export default function Navbar() {
     const onClick = (e: MouseEvent) => {
       if (langRef.current && !langRef.current.contains(e.target as Node)) {
         setLangOpen(false);
+      }
+      if (cartWrapRef.current && !cartWrapRef.current.contains(e.target as Node)) {
+        setCartOpen(false);
       }
     };
     document.addEventListener('mousedown', onClick);
@@ -218,26 +226,93 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Right — auth */}
+          {/* Right — cart (только для авторизованных) + auth */}
           <div className="flex-1 flex items-center justify-end gap-3">
-            {isAuthenticated && (
-              <Link
-                to="/profile?tab=cart"
-                className="group flex h-11 w-11 items-center justify-center rounded-full bg-white/95 shadow-sm transition-colors duration-150 hover:bg-primary"
-                aria-label="Корзина"
-              >
-                <img
-                  src={CART_ICON_SRC}
-                  alt=""
-                  width={64}
-                  height={64}
-                  decoding="async"
-                  draggable={false}
-                  className="h-[22px] w-[22px] object-contain object-center"
-                  aria-hidden
-                />
-              </Link>
-            )}
+            {isAuthenticated ? (
+              <div ref={cartWrapRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(o => !o)}
+                  className="group relative flex h-11 w-11 items-center justify-center rounded-none bg-transparent p-0 text-white transition-opacity duration-150 hover:opacity-90"
+                  aria-label={count > 0 ? `Корзина, ${count} товаров` : 'Корзина'}
+                  aria-expanded={cartOpen}
+                  aria-haspopup="true"
+                >
+                  <img
+                    src={CART_ICON_SRC}
+                    alt=""
+                    width={64}
+                    height={64}
+                    decoding="async"
+                    draggable={false}
+                    className="h-[22px] w-[22px] object-contain brightness-0 invert"
+                    aria-hidden
+                  />
+                  {count > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-black leading-none text-black">
+                      {count > 99 ? '99+' : count}
+                    </span>
+                  )}
+                </button>
+                {cartOpen && (
+                  <div
+                    className="absolute right-0 z-[60] mt-3 w-[min(calc(100vw-2rem),20rem)] max-h-[min(75vh,24rem)] overflow-hidden rounded-md border border-white/15 bg-[#1a1f26] shadow-xl"
+                    role="dialog"
+                    aria-label="Содержимое корзины"
+                  >
+                    {count === 0 ? (
+                      <p className="px-4 py-8 text-center text-sm text-white/65">Корзина пуста</p>
+                    ) : (
+                      <>
+                        <ul className="scrollbar-dark-minimal max-h-[min(14rem,45vh)] divide-y divide-white/10 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+                          {items.map(line => (
+                            <li key={line.id} className="flex gap-2 px-3 py-2.5">
+                              <div className="min-w-0 flex-1 text-left">
+                                <Link
+                                  to={`/market/listing/${line.id}`}
+                                  className="line-clamp-2 text-sm font-medium text-white transition-colors hover:text-primary"
+                                  onClick={() => setCartOpen(false)}
+                                >
+                                  {line.title}
+                                </Link>
+                                <p className="mt-0.5 text-xs tabular-nums text-white/55">
+                                  {line.price.toLocaleString('ro-MD')} MDL
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => removeFromCart(line.id)}
+                                className="shrink-0 self-start rounded p-1 text-white/45 transition-colors hover:bg-white/10 hover:text-white"
+                                aria-label="Убрать из корзины"
+                              >
+                                <Trash2 size={16} strokeWidth={2} aria-hidden />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                        <div className="border-t border-white/10 px-3 py-2.5">
+                          <Link
+                            to="/profile?tab=cart"
+                            className="block w-full rounded-sm bg-primary py-2.5 text-center text-sm font-black text-black transition-opacity hover:opacity-95"
+                            onClick={() => setCartOpen(false)}
+                          >
+                            Открыть корзину в профиле
+                          </Link>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {isAuthenticated ? (
+              <div
+                className="h-7 w-px shrink-0 bg-white/25"
+                role="separator"
+                aria-hidden="true"
+              />
+            ) : null}
 
             <Link
               to={isAuthenticated ? '/profile' : '/login'}

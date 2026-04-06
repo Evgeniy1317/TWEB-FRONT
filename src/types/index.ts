@@ -13,8 +13,9 @@ export type ProductCategory =
   | 'court_inventory'
   | 'other';
 export type ProductCondition = 'new' | 'used';
-/** Для обуви, одежды, носков */
-export type ProductGender = 'mens' | 'womens' | 'unisex';
+
+/** Мужское / женское / универсальное — для категорий одежды, обуви и т.п. */
+export type ProductFit = 'mens' | 'womens' | 'unisex';
 export type OrderStatus = 'received' | 'in_progress' | 'ready';
 
 export interface Product {
@@ -25,14 +26,18 @@ export interface Product {
   condition: ProductCondition;
   image: string;
   description: string;
-  /** Пол — для фильтров в категориях обувь / одежда / носки */
-  gender?: ProductGender;
   /** Размер (EU для обуви, S–XL для одежды, диапазон для носков) */
   sizeLabel?: string;
   /** Дополнительные фото (не больше 6); главное фото — всегда `image` */
   extraImages?: string[];
   /** Цвет товара — один вариант, задаёт продавец */
   colorLabel?: string;
+  /** Для кого (только для подходящих категорий: обувь, одежда, сумки и т.д.) */
+  fit?: ProductFit;
+  /** Телефон из профиля на момент публикации */
+  sellerPhone?: string;
+  /** Соцсети из профиля на момент публикации */
+  sellerContacts?: SellerContactSnapshot[];
 }
 
 export interface Court {
@@ -66,7 +71,12 @@ export interface StringingOrder {
   createdAt: string;
 }
 
-export type UserContactPlatform = 'telegram' | 'instagram' | 'viber' | 'facebook' | 'whatsapp' | 'other';
+export type UserContactPlatform = 'telegram' | 'instagram' | 'viber' | 'facebook' | 'whatsapp';
+
+export interface SellerContactSnapshot {
+  platform: UserContactPlatform;
+  value: string;
+}
 
 export interface UserContact {
   id: string;

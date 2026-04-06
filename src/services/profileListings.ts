@@ -14,7 +14,8 @@ export function loadProfileListings(): Product[] {
 
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Product[]) : [];
+    if (!Array.isArray(parsed)) return [];
+    return (parsed as (Product & { gender?: unknown })[]).map(({ gender: _omit, ...rest }) => rest);
   } catch {
     return [];
   }
