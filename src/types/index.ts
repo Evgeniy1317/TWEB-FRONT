@@ -52,6 +52,16 @@ export interface Court {
   image: string;
 }
 
+/** Зал / площадка: название, лого и фото в UI, координаты — в ссылке карт */
+export interface HallVenue {
+  id: string;
+  name: string;
+  mapsUrl: string;
+  logoSrc: string;
+  /** Верх карточки: заполняет рамку через object-cover */
+  coverSrc: string;
+}
+
 export interface Tournament {
   id: number;
   title: string;
