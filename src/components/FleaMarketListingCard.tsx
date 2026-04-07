@@ -115,9 +115,17 @@ export default function FleaMarketListingCard({
                 .join(' · ')}
             </p>
           ) : null}
-          <p className="pt-0.5 text-base font-bold tabular-nums text-gray-900 sm:text-lg">
-            {product.price.toLocaleString('ro-MD')} MDL
-          </p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 pt-0.5">
+            <p className="text-base font-bold tabular-nums text-gray-900 sm:text-lg">
+              {product.price.toLocaleString('ro-MD')} MDL
+            </p>
+            <Link
+              to={listingPath}
+              className="relative z-[3] shrink-0 border-2 border-black bg-white px-3 py-1.5 text-xs font-bold text-gray-900 shadow-[2px_2px_0_0_#000] pointer-events-auto hover:bg-neutral-900 hover:text-white transition-colors"
+            >
+              Подробнее
+            </Link>
+          </div>
         </div>
       </div>
     </article>

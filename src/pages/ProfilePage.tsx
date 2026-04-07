@@ -1170,14 +1170,17 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[19rem_minmax(0,1fr)]">
           <aside className="space-y-6">
-            <div className="border-2 border-black bg-white p-5 sketch-shadow">
-              <div className="mb-5 flex items-start justify-between gap-3">
-                <div className="flex h-24 w-24 items-center justify-center border-2 border-black bg-neutral-100 text-4xl font-black text-neutral-500">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-              </div>
+            <div className="relative border-2 border-black bg-white p-5 sketch-shadow">
+              <Link
+                to="/profile?tab=edit"
+                className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center border-2 border-black bg-white text-gray-900 shadow-[2px_2px_0_0_#000] transition-colors hover:bg-neutral-100"
+                aria-label="Редактировать профиль"
+                title="Редактировать профиль"
+              >
+                <SquarePen size={18} strokeWidth={2.5} aria-hidden />
+              </Link>
 
-              <h1 className="text-2xl font-black tracking-tight">{user.name}</h1>
+              <h1 className="pr-12 text-2xl font-black tracking-tight">{user.name}</h1>
               <div className="mt-4 space-y-2 text-sm text-neutral-700">
                 <p className="flex items-center gap-2">
                   <Mail size={15} />
@@ -1239,9 +1242,9 @@ export default function ProfilePage() {
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-2 border-2 border-black bg-white px-5 py-3 font-bold text-black sketch-shadow-sm transition-colors hover:bg-black hover:text-white"
+              className="inline-flex items-center gap-2 border-2 border-red-600 bg-white px-5 py-3 font-bold text-red-600 shadow-[3px_3px_0_0_#dc2626] transition-colors hover:bg-red-600 hover:text-white"
             >
-              <LogOut size={18} />
+              <LogOut size={18} className="shrink-0" aria-hidden />
               Выйти из аккаунта
             </button>
           </aside>

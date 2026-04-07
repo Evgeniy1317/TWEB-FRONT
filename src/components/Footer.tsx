@@ -1,10 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 
-/** Подставьте реальные URL, когда будут готовы */
 const SOCIAL = {
-  telegram: '#',
-  instagram: '#',
-  facebook: '#',
+  telegram: 'https://t.me/qweqweqweeqwe',
+  instagram: 'https://www.instagram.com/jenyaa_u/',
+  facebook: 'https://www.facebook.com/share/18hT9Ranws/',
 } as const;
 
 const footerLinks = [
@@ -128,13 +127,31 @@ export default function Footer() {
               Контакты
             </p>
             <div className="flex items-center gap-2" aria-label="Соцсети">
-              <a href={SOCIAL.telegram} className={socialClass} aria-label="Telegram">
+              <a
+                href={SOCIAL.telegram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={socialClass}
+                aria-label="Telegram"
+              >
                 <IconTelegram className="h-4 w-4" />
               </a>
-              <a href={SOCIAL.instagram} className={socialClass} aria-label="Instagram">
+              <a
+                href={SOCIAL.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={socialClass}
+                aria-label="Instagram"
+              >
                 <IconInstagram className="h-4 w-4" />
               </a>
-              <a href={SOCIAL.facebook} className={socialClass} aria-label="Facebook">
+              <a
+                href={SOCIAL.facebook}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={socialClass}
+                aria-label="Facebook"
+              >
                 <IconFacebook className="h-4 w-4" />
               </a>
             </div>

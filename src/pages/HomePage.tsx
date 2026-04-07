@@ -1,17 +1,5 @@
 import { Link } from 'react-router-dom';
-import {
-  ShoppingBag,
-  Wrench,
-  MapPin,
-  Trophy,
-  ArrowRight,
-  UserPlus,
-  Search,
-  Star,
-  Calendar,
-  ImageIcon,
-  CheckCircle,
-} from 'lucide-react';
+import { ShoppingBag, Wrench, ArrowRight, ImageIcon } from 'lucide-react';
 
 function ImagePlaceholder({ label, className = '' }: { label: string; className?: string }) {
   return (
@@ -22,6 +10,25 @@ function ImagePlaceholder({ label, className = '' }: { label: string; className?
       </div>
       <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent" />
     </div>
+  );
+}
+
+const homeShowcaseImages = {
+  heroDesign: `/media/images/${encodeURIComponent('Hero (2).png')}`,
+  productCardBanner: `/media/images/${encodeURIComponent('Free Product Card.png')}`,
+  macbook: `/media/images/${encodeURIComponent('MacBook Air (2022).png')}`,
+  iphoneHand: `/media/images/${encodeURIComponent('Hand and iPhone 16 Pro.png')}`,
+  iphoneAir: `/media/images/${encodeURIComponent('Free iPhone Air.png')}`,
+} as const;
+
+function StepBadge({ n }: { n: number }) {
+  return (
+    <span
+      className="mb-4 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-primary/10 font-display text-lg font-bold text-primary"
+      aria-hidden
+    >
+      {n}
+    </span>
   );
 }
 
@@ -86,283 +93,189 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* --- MARKETPLACE --- */}
-      <section className="relative py-24 lg:py-32 overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.03] rounded-full blur-[100px] -translate-y-1/2" />
-
-        <div className="max-w-7xl mx-auto px-6 sm:px-10">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-                <ShoppingBag size={16} />
-                Барахолка
-              </div>
-              <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-dark leading-tight mb-6">
-                Продавай и покупай всё для бадминтона
-              </h2>
-              <p className="text-gray-500 text-lg leading-relaxed mb-8">
-                Ракетки, воланы, кроссовки, сумки, струны и любая экипировка — всё в одном месте.
-                Зарегистрируйтесь, войдите в личный кабинет и выставляйте свои товары на продажу
-                или находите то, что нужно вам, по лучшим ценам от других игроков Кишинёва.
-              </p>
-
-              <div className="space-y-4 mb-10">
-                {[
-                  'Создайте аккаунт за 30 секунд',
-                  'Выставляйте товары с фото и описанием',
-                  'Покупайте напрямую у других игроков',
-                ].map((text) => (
-                  <div key={text} className="flex items-center gap-3">
-                    <CheckCircle size={20} className="text-primary shrink-0" />
-                    <span className="text-gray-600">{text}</span>
-                  </div>
-                ))}
-              </div>
-
+      {/* Витрина: один прямоугольный блок без скруглений, шапка и фото внутри рамки */}
+      <section className="bg-black pt-16 pb-14 sm:pt-24 sm:pb-20 lg:pt-28 lg:pb-24">
+        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-0 flex-col overflow-hidden border-2 border-white/20 bg-neutral-950 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]">
+            <div className="flex shrink-0 min-w-0 flex-wrap items-center justify-between gap-3 border-b border-white/15 bg-neutral-950 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-6 lg:py-5">
               <Link
-                to="/market"
-                className="group inline-flex items-center gap-2 text-primary font-heading font-semibold text-lg hover:gap-3 transition-all"
+                to="/"
+                className="flex min-w-0 max-w-full items-center gap-2 text-white transition-opacity hover:opacity-90 sm:gap-2.5"
               >
-                Открыть маркет
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                <img
+                  src="/media/images/background-removed.png"
+                  alt=""
+                  className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
+                  width={40}
+                  height={40}
+                  decoding="async"
+                />
+                <span className="min-w-0 break-words text-base font-bold tracking-tight sm:text-xl lg:text-2xl">
+                  Smash<span className="text-primary">Market</span>
+                </span>
               </Link>
-            </div>
-
-            <div className="relative">
-              <div className="absolute -inset-4 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 rounded-[2rem] blur-2xl" />
-              <div className="relative grid grid-cols-2 gap-4">
-                <ImagePlaceholder label="Ракетка" className="col-span-2 h-56 rounded-2xl" />
-                <ImagePlaceholder label="Воланы" className="h-40 rounded-2xl" />
-                <ImagePlaceholder label="Кроссовки" className="h-40 rounded-2xl" />
+              <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
+                <Link
+                  to="/market"
+                  className="inline-flex items-center gap-1.5 bg-primary px-3 py-2 font-heading text-xs font-semibold text-dark transition-transform hover:-translate-y-0.5 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm lg:text-base"
+                >
+                  В маркет
+                  <ArrowRight size={16} className="shrink-0 sm:h-[18px] sm:w-[18px]" aria-hidden />
+                </Link>
+                <Link
+                  to="/register"
+                  className="inline-flex items-center gap-1.5 border-2 border-white/30 bg-transparent px-3 py-2 font-heading text-xs font-semibold text-white transition-colors hover:border-primary hover:text-primary sm:px-5 sm:py-2.5 sm:text-sm lg:text-base"
+                >
+                  Создать аккаунт
+                </Link>
               </div>
+            </div>
+            <div className="relative min-h-[min(48vh,420px)] w-full overflow-hidden sm:min-h-[min(54vh,520px)] lg:min-h-[min(58vh,680px)]">
+              <img
+                src={homeShowcaseImages.heroDesign}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover object-center"
+                width={1600}
+                height={1200}
+                decoding="async"
+                draggable={false}
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- RESTRINGING --- */}
-      <section className="relative py-24 lg:py-32 bg-dark overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-accent/[0.06] rounded-full blur-[120px] -translate-y-1/2" />
-          <div className="absolute bottom-0 right-1/4 w-[300px] h-[300px] bg-primary/[0.04] rounded-full blur-[100px]" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-6 sm:px-10">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
-            <div className="order-2 lg:order-1 relative">
-              <div className="absolute -inset-4 bg-gradient-to-tl from-primary/10 via-transparent to-accent/5 rounded-[2rem] blur-2xl" />
-              <div className="relative">
-                <ImagePlaceholder label="Перетяжка ракетки" className="h-80 rounded-2xl" />
-                <div className="absolute -bottom-6 -right-6 bg-dark-light border border-white/10 rounded-2xl p-5 backdrop-blur-md">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    <span className="text-white/70 text-sm">Статус заказа</span>
-                  </div>
-                  <span className="text-white font-heading font-semibold">Ракетка готова к выдаче</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="order-1 lg:order-2">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/15 text-accent text-sm font-medium mb-6">
-                <Wrench size={16} />
-                Перетяжка
-              </div>
-              <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-white leading-tight mb-6">
-                Порвалась струна? Не проблема
-              </h2>
-              <p className="text-white/50 text-lg leading-relaxed mb-8">
-                Оформите заказ на перетяжку ракетки прямо на сайте. Выберите мастера, тип струн
-                и натяжение — отслеживайте статус в реальном времени. Качественная перетяжка
-                от проверенных специалистов Кишинёва с гарантией.
-              </p>
-
-              <div className="grid grid-cols-3 gap-6 mb-10">
-                {[
-                  { num: '24ч', text: 'Среднее время' },
-                  { num: '150+', text: 'Заказов' },
-                  { num: '4.9', text: 'Рейтинг' },
-                ].map(({ num, text }) => (
-                  <div key={text}>
-                    <div className="font-display text-2xl font-bold text-primary mb-1">{num}</div>
-                    <div className="text-white/40 text-sm">{text}</div>
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                to="/stringing"
-                className="group inline-flex items-center gap-2 text-accent font-heading font-semibold text-lg hover:gap-3 transition-all"
-              >
-                Заказать перетяжку
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* --- COURTS --- */}
-      <section className="relative py-24 lg:py-32 overflow-hidden">
-        <div className="absolute bottom-0 left-1/3 w-[500px] h-[500px] bg-violet-500/[0.03] rounded-full blur-[120px]" />
-
-        <div className="max-w-7xl mx-auto px-6 sm:px-10">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-50 text-violet-600 text-sm font-medium mb-6">
-              <MapPin size={16} />
-              Залы
-            </div>
-            <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-dark leading-tight mb-6">
-              Все залы Кишинёва на одной карте
-            </h2>
-            <p className="text-gray-500 text-lg leading-relaxed">
-              Хотите начать заниматься бадминтоном или ищете новое место для тренировок?
-              Здесь собраны все спортивные залы Кишинёва с расписанием, ценами и отзывами.
+      {/* Чередование блоков: снимок, текст, снимок */}
+      <section className="bg-black py-20 sm:py-24 lg:py-28">
+        <div className="mx-auto max-w-7xl px-6 sm:px-10">
+          <header className="mx-auto mb-16 max-w-2xl text-center lg:mb-20">
+            <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">Как это выглядит в деле</h2>
+            <p className="mt-4 text-base leading-relaxed text-white/50 sm:text-lg">
+              Один сервис на всех экранах: от регистрации до перетяжки и личного кабинета, интерфейс остаётся узнаваемым и удобным.
             </p>
-          </div>
+          </header>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { name: 'Название зала', address: 'ул. Примерная, 1', time: 'Пн–Пт 08:00–22:00' },
-              { name: 'Название зала', address: 'ул. Примерная, 2', time: 'Пн–Сб 09:00–21:00' },
-              { name: 'Название зала', address: 'ул. Примерная, 3', time: 'Ежедневно 07:00–23:00' },
-            ].map((court, i) => (
-              <div key={i} className="group relative rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                <ImagePlaceholder label={`Фото зала ${i + 1}`} className="h-48 w-full" />
-                <div className="p-6">
-                  <h3 className="font-heading font-semibold text-dark text-lg mb-2">{court.name}</h3>
-                  <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-                    <MapPin size={14} />
-                    {court.address}
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-400 text-sm mb-4">
-                    <Calendar size={14} />
-                    {court.time}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {[...Array(5)].map((_, j) => (
-                      <Star key={j} size={14} className={j < 4 ? 'text-amber-400 fill-amber-400' : 'text-gray-200'} />
-                    ))}
-                    <span className="text-gray-400 text-xs ml-1">4.0</span>
-                  </div>
+          <div className="flex flex-col gap-20 lg:gap-28">
+            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+              <div className="order-1 lg:order-1">
+                <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.75)]">
+                  <img
+                    src={homeShowcaseImages.macbook}
+                    alt=""
+                    className="w-full object-cover object-center"
+                    width={1600}
+                    height={1000}
+                    decoding="async"
+                    draggable={false}
+                  />
                 </div>
               </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link
-              to="/courts"
-              className="group inline-flex items-center gap-2 px-8 py-4 rounded-full bg-dark text-white font-heading font-semibold hover:bg-dark-light transition-all"
-            >
-              <Search size={18} />
-              Посмотреть все залы
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* --- TOURNAMENTS --- */}
-      <section className="relative py-24 lg:py-32 bg-dark overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/[0.04] rounded-full blur-[150px]" />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-6 sm:px-10">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/15 text-amber-400 text-sm font-medium mb-6">
-                <Trophy size={16} />
-                Турниры
+              <div className="order-2 lg:order-2">
+                <StepBadge n={1} />
+                <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">Полный доступ с большого экрана</h3>
+                <p className="mt-4 text-base leading-relaxed text-white/50 sm:text-lg">
+                  Регистрация, настройка профиля и просмотр барахолки на широком экране: удобно сравнивать объявления и оформлять
+                  заказы без спешки.
+                </p>
+                <Link
+                  to="/register"
+                  className="mt-6 inline-flex items-center gap-2 font-heading font-semibold text-primary hover:gap-3"
+                >
+                  Зарегистрироваться
+                  <ArrowRight size={18} aria-hidden />
+                </Link>
               </div>
-              <h2 className="font-display text-3xl sm:text-4xl lg:text-[2.75rem] font-bold text-white leading-tight mb-6">
-                Соревнуйся и побеждай
-              </h2>
-              <p className="text-white/50 text-lg leading-relaxed mb-10">
-                Для любителей и профессионалов — календарь ближайших турниров Кишинёва.
-                Смотрите даты, формат и место проведения. Записывайтесь онлайн и следите
-                за результатами прямо на платформе.
-              </p>
-
-              <Link
-                to="/tournaments"
-                className="group inline-flex items-center gap-2 text-amber-400 font-heading font-semibold text-lg hover:gap-3 transition-all"
-              >
-                Все турниры
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
             </div>
 
-            <div className="space-y-4">
-              {[
-                { title: 'Весенний Кубок Кишинёва', date: '15 апреля 2026', type: 'Одиночный', status: 'Регистрация открыта' },
-                { title: 'SmashMarket Open', date: '3 мая 2026', type: 'Парный', status: 'Скоро' },
-                { title: 'Летний Чемпионат', date: '20 июня 2026', type: 'Смешанный', status: 'Скоро' },
-              ].map((t, i) => (
-                <div key={i} className="group relative bg-white/[0.04] border border-white/[0.06] rounded-2xl p-6 hover:bg-white/[0.07] hover:border-primary/20 transition-all duration-300 cursor-pointer">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-heading font-semibold text-white text-lg mb-2">{t.title}</h3>
-                      <div className="flex flex-wrap items-center gap-3 text-white/40 text-sm">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar size={14} />
-                          {t.date}
-                        </span>
-                        <span className="w-1 h-1 rounded-full bg-white/20" />
-                        <span>{t.type}</span>
-                      </div>
-                    </div>
-                    <span className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium ${
-                      i === 0
-                        ? 'bg-primary/15 text-primary'
-                        : 'bg-white/[0.06] text-white/40'
-                    }`}>
-                      {t.status}
-                    </span>
-                  </div>
+            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+              <div className="order-2 lg:order-1">
+                <StepBadge n={2} />
+                <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">Сервис перетяжки под рукой</h3>
+                <p className="mt-4 text-base leading-relaxed text-white/50 sm:text-lg">
+                  Смотрите, как работает мастер, выбирайте натяжение и связывайтесь в один тап. Всё доступно в мобильной версии
+                  до и после тренировки.
+                </p>
+                <Link
+                  to="/stringing"
+                  className="mt-6 inline-flex items-center gap-2 font-heading font-semibold text-accent hover:gap-3"
+                >
+                  Перетяжка ракеток
+                  <ArrowRight size={18} aria-hidden />
+                </Link>
+              </div>
+              <div className="order-1 lg:order-2">
+                <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-neutral-900 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.75)]">
+                  <img
+                    src={homeShowcaseImages.iphoneHand}
+                    alt=""
+                    className="w-full object-cover object-center"
+                    width={1200}
+                    height={1400}
+                    decoding="async"
+                    draggable={false}
+                  />
                 </div>
-              ))}
+              </div>
+            </div>
+
+            <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+              <div className="order-1 lg:order-1">
+                <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-neutral-900 shadow-[0_32px_80px_-20px_rgba(0,0,0,0.75)]">
+                  <img
+                    src={homeShowcaseImages.iphoneAir}
+                    alt=""
+                    className="w-full object-cover object-center"
+                    width={1200}
+                    height={1400}
+                    decoding="async"
+                    draggable={false}
+                  />
+                </div>
+              </div>
+              <div className="order-2 lg:order-2">
+                <StepBadge n={3} />
+                <h3 className="font-display text-2xl font-bold text-white sm:text-3xl">Личный кабинет всегда с собой</h3>
+                <p className="mt-4 text-base leading-relaxed text-white/50 sm:text-lg">
+                  Объявления, корзина и контакты: управляйте барахолкой и заказами там, где вам удобно, без привязки к десктопу.
+                </p>
+                <Link
+                  to="/profile"
+                  className="mt-6 inline-flex items-center gap-2 font-heading font-semibold text-primary hover:gap-3"
+                >
+                  Открыть профиль
+                  <ArrowRight size={18} aria-hidden />
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* --- CTA --- */}
-      <section className="relative py-24 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/[0.04] rounded-full blur-[150px]" />
-        </div>
-
-        <div className="relative max-w-4xl mx-auto px-6 sm:px-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8">
-            <UserPlus size={16} />
-            Присоединяйся
-          </div>
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-dark leading-tight mb-6">
-            Стань частью бадминтонного
-            <br />
-            <span className="text-primary">сообщества Кишинёва</span>
-          </h2>
-          <p className="text-gray-500 text-lg leading-relaxed max-w-2xl mx-auto mb-12">
-            Создайте аккаунт, выставляйте и покупайте экипировку, заказывайте перетяжку,
-            находите залы и участвуйте в турнирах — всё бесплатно на одной платформе
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              to="/login"
-              className="group w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 bg-primary text-dark font-heading font-semibold text-lg hover:bg-primary-dark hover:text-white transition-all hover:-translate-y-0.5"
-            >
-              <UserPlus size={20} />
-              Зарегистрироваться
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
+      {/* --- Барахолка: только баннер и кнопки --- */}
+      <section className="bg-black py-14 sm:py-16 lg:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <img
+            src={homeShowcaseImages.productCardBanner}
+            alt=""
+            className="block h-auto w-full"
+            width={1600}
+            height={900}
+            decoding="async"
+            draggable={false}
+          />
+          <div className="mt-8 flex flex-col items-stretch gap-3 sm:mt-10 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
             <Link
               to="/market"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 text-dark font-heading font-semibold text-lg border border-dark/15 hover:border-dark/40 transition-all"
+              className="group inline-flex items-center justify-center gap-2 bg-primary px-8 py-4 font-heading text-base font-semibold text-dark transition-transform hover:-translate-y-0.5"
             >
-              <Search size={20} />
-              Посмотреть маркет
+              Перейти в маркет
+              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" aria-hidden />
+            </Link>
+            <Link
+              to="/register"
+              className="inline-flex items-center justify-center gap-2 border-2 border-white/25 px-8 py-4 font-heading text-base font-semibold text-white transition-colors hover:border-primary hover:text-primary"
+            >
+              Зарегистрироваться
             </Link>
           </div>
         </div>

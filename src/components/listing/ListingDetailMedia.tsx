@@ -24,9 +24,9 @@ export function ListingDetailMedia({
   const goNext = () => onActiveIndexChange((activeIndex + 1) % n);
 
   return (
-    <div className="flex min-h-0 w-full min-w-0 shrink-0 gap-3 sm:gap-4 lg:max-w-[min(100%,520px)] lg:min-h-0 lg:items-stretch">
+    <div className="listing-detail-media flex min-h-0 w-full min-w-0 shrink-0 gap-3 sm:gap-4 lg:max-w-[min(100%,520px)] lg:min-h-0 lg:items-stretch">
       {showNav ? (
-        <div className="flex shrink-0 flex-col justify-start gap-2 sm:gap-2.5 lg:min-h-0 lg:self-stretch">
+        <div className="listing-detail-media-thumbs flex shrink-0 flex-col justify-start gap-2 sm:gap-2.5 lg:min-h-0 lg:self-stretch">
           {galleryUrls.map((src, i) => (
             <button
               key={`${src}-${i}`}

@@ -320,7 +320,7 @@ export default function StringingPage() {
                       Смотрите список и статус перетяжки в личном профиле.
                     </p>
                     <Link
-                      to="/profile"
+                      to="/profile?tab=orders"
                       className="mt-5 inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-primary px-5 py-3 text-sm font-black uppercase tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5 sm:w-auto"
                     >
                       Перейти в профиль
@@ -367,8 +367,9 @@ export default function StringingPage() {
               </div>
               <div className="flex h-full min-h-0 min-w-0 flex-col">
                 <div className="flex h-full min-h-0 flex-col gap-0 p-2.5 sm:p-3">
-                  <div className="flex shrink-0 flex-col items-start gap-2 sm:flex-row sm:items-stretch sm:gap-3">
-                    <div className="relative w-[10.5rem] shrink-0 self-start sm:w-[12rem]">
+                  {/* Мобильный: фото слева, имя и описание справа; десктоп: та же сетка + кнопки ниже на всю ширину */}
+                  <div className="flex shrink-0 flex-row items-start gap-2.5 sm:gap-3">
+                    <div className="relative w-[7.25rem] shrink-0 sm:w-[12rem]">
                       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border-2 border-black bg-neutral-100 shadow-none">
                         {!masterPhotoError ? (
                           <img
@@ -388,38 +389,38 @@ export default function StringingPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 text-left sm:h-full sm:justify-between sm:gap-0">
-                      <div className="shrink-0">
-                        <p className="font-black text-xl leading-tight text-gray-900 sm:text-2xl">Anzor Sturza</p>
-                        <p className="mt-1 text-sm leading-snug text-neutral-700 sm:text-[15px] sm:leading-relaxed">
-                          Работает на электронном станке, подбирает натяжение струн и тип струны под ваш стиль игры. Принимает
-                          ракетки по записи, консультирует по струнам и уходу за кадром.
-                        </p>
-                      </div>
-                      <ul className="grid shrink-0 grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-2">
-                        <li className="min-w-0">
-                          <a
-                            href="tel:+37360678358"
-                            className="inline-flex h-full min-h-[2.75rem] w-full items-center justify-center gap-2 border-2 border-black bg-primary px-3 py-2.5 text-center text-[11px] font-black uppercase leading-tight tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5 sm:text-xs"
-                          >
-                            <Phone className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden />
-                            0606 78 358
-                          </a>
-                        </li>
-                        <li className="min-w-0">
-                          <a
-                            href={MASTER_SOCIAL.telegram}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex h-full min-h-[2.75rem] w-full items-center justify-center gap-2 border-2 border-black bg-primary px-2 py-2.5 text-center text-[10px] font-black uppercase leading-tight tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5 sm:px-3 sm:text-[11px]"
-                          >
-                            <Send className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden />
-                            <span className="leading-tight">Написать в Telegram</span>
-                          </a>
-                        </li>
-                      </ul>
+                    <div className="min-h-0 min-w-0 flex-1 text-left">
+                      <p className="font-black text-lg leading-tight text-gray-900 sm:text-2xl">
+                        Anzor Sturza
+                      </p>
+                      <p className="mt-1.5 text-[13px] leading-snug text-neutral-700 sm:mt-2 sm:text-[15px] sm:leading-relaxed">
+                        Работает на электронном станке, подбирает натяжение струн и тип струны под ваш стиль игры. Принимает
+                        ракетки по записи, консультирует по струнам и уходу за кадром.
+                      </p>
                     </div>
                   </div>
+                  <ul className="mt-3 grid shrink-0 grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-2">
+                    <li className="min-w-0">
+                      <a
+                        href="tel:+37360678358"
+                        className="inline-flex h-full min-h-[2.75rem] w-full items-center justify-center gap-2 border-2 border-black bg-primary px-3 py-2.5 text-center text-[11px] font-black uppercase leading-tight tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5 sm:text-xs"
+                      >
+                        <Phone className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden />
+                        0606 78 358
+                      </a>
+                    </li>
+                    <li className="min-w-0">
+                      <a
+                        href={MASTER_SOCIAL.telegram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex h-full min-h-[2.75rem] w-full items-center justify-center gap-2 border-2 border-black bg-primary px-2 py-2.5 text-center text-[10px] font-black uppercase leading-tight tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5 sm:px-3 sm:text-[11px]"
+                      >
+                        <Send className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden />
+                        <span className="leading-tight">Написать в Telegram</span>
+                      </a>
+                    </li>
+                  </ul>
                   <ul
                     className="mt-3 shrink-0 space-y-1.5 border-2 border-black bg-neutral-50 px-2.5 py-2 text-[11px] font-semibold leading-snug text-neutral-800 sm:text-xs"
                     aria-label="Преимущества"

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -108,6 +109,30 @@ export default function Navbar() {
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    setCartOpen(false);
+    setLangOpen(false);
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileOpen]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
 
   const handleLangChange = (code: string) => {
     setCurrentLang(code);
@@ -356,52 +381,112 @@ export default function Navbar() {
         </div>
       </div>
 
-      {mobileOpen && (
-        <div className="md:hidden border-t border-white/10 bg-dark">
-          <div className="max-w-[1440px] mx-auto px-8 py-4 space-y-1">
-            {navLinks.map(({ to, label, icon: Icon }) => {
-              const isActive = location.pathname === to;
-              return (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setMobileOpen(false)}
-                  className="group flex items-center gap-3 rounded-sm px-4 py-2.5 text-sm font-medium transition-colors duration-150 hover:bg-transparent"
-                >
-                  <Icon
-                    size={18}
-                    className={`shrink-0 transition-colors duration-150 ${
-                      isActive
-                        ? 'text-primary'
-                        : 'text-white group-hover:text-primary'
-                    }`}
-                    aria-hidden
-                  />
-                  <span
-                    className={
-                      isActive
-                        ? 'text-primary'
-                        : 'text-white transition-colors duration-150 group-hover:text-primary'
-                    }
-                  >
-                    {label}
-                  </span>
-                </Link>
-              );
-            })}
-            {!isAuthenticated && (
+      {mobileOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex min-h-0 flex-col bg-[#ececec] md:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Меню сайта"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b-2 border-black/10 bg-white px-4 py-3 shadow-[0_1px_0_0_rgba(0,0,0,0.06)] pt-[max(0.75rem,env(safe-area-inset-top,0px))]">
               <Link
-                to="/register"
+                to="/"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-none text-sm font-medium border border-primary/55 bg-transparent text-primary hover:bg-primary/10 hover:border-primary transition-all"
+                className="flex min-w-0 items-center gap-2"
               >
-                <UserPlus size={18} />
-                Регистрация
+                <img
+                  src="/media/images/background-removed.png"
+                  alt=""
+                  className="h-10 w-10 shrink-0 object-contain"
+                  width={40}
+                  height={40}
+                  decoding="async"
+                />
+                <span className="truncate text-lg font-bold tracking-tight text-gray-900">
+                  Smash<span className="text-primary">Market</span>
+                </span>
               </Link>
-            )}
-          </div>
-        </div>
-      )}
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border-2 border-black/15 bg-white text-gray-900 transition-colors hover:bg-neutral-100"
+                aria-label="Закрыть меню"
+              >
+                <X size={22} strokeWidth={2.5} aria-hidden />
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]">
+              <nav className="mx-auto flex max-w-lg flex-col gap-1" aria-label="Разделы сайта">
+                {navLinks.map(({ to, label, icon: Icon }) => {
+                  const isActive = location.pathname === to;
+                  return (
+                    <Link
+                      key={to}
+                      to={to}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-4 rounded-xl border-2 border-black/10 bg-white px-4 py-4 text-base font-semibold shadow-[3px_3px_0_0_rgba(0,0,0,0.08)] transition-colors ${
+                        isActive
+                          ? 'border-primary/40 bg-primary/10 text-gray-900'
+                          : 'text-gray-900 hover:border-black/20 hover:bg-neutral-50'
+                      }`}
+                    >
+                      <Icon
+                        size={22}
+                        className={`shrink-0 ${isActive ? 'text-primary' : 'text-gray-700'}`}
+                        aria-hidden
+                      />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="mx-auto mt-6 max-w-lg border-t-2 border-dashed border-black/15 pt-5">
+                <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-neutral-500">Язык</p>
+                <div className="flex flex-wrap gap-2">
+                  {languages.map(({ code, label }) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => handleLangChange(code)}
+                      className={`rounded-lg border-2 px-3 py-2 text-sm font-bold transition-colors ${
+                        currentLang === code
+                          ? 'border-primary bg-primary/15 text-gray-900'
+                          : 'border-black/10 bg-white text-gray-800 hover:border-black/25'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mx-auto mt-6 max-w-lg flex flex-col gap-2 border-t-2 border-dashed border-black/15 pt-5">
+                <Link
+                  to={isAuthenticated ? '/profile' : '/login'}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl border-2 border-black/15 bg-white py-3.5 text-base font-bold text-gray-900 shadow-[3px_3px_0_0_rgba(0,0,0,0.08)] hover:bg-neutral-50"
+                >
+                  {isAuthenticated ? <User size={20} aria-hidden /> : <LogIn size={20} aria-hidden />}
+                  {isAuthenticated ? 'Профиль' : 'Войти'}
+                </Link>
+                {!isAuthenticated && (
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl border-2 border-primary bg-primary/10 py-3.5 text-base font-bold text-gray-900 hover:bg-primary/20"
+                  >
+                    <UserPlus size={20} aria-hidden />
+                    Регистрация
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </nav>
   );
 }

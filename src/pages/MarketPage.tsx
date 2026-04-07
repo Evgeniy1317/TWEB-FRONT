@@ -349,7 +349,7 @@ export default function MarketPage() {
                 aria-label="Категории"
               >
                 <div
-                  className="grid w-full gap-2 sm:gap-3"
+                  className="market-category-picker-grid grid w-full gap-2 sm:gap-3"
                   style={{
                     gridTemplateColumns: `repeat(${allCategoriesPickerItems.length}, minmax(0, 1fr))`,
                   }}
