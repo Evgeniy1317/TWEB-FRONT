@@ -33,7 +33,7 @@
   }
 
   main video,
-  main img[src^='/media/'] {
+  main img[src*='/media/'] {
     max-width: 100%;
   }
 

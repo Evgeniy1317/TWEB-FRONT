@@ -12,6 +12,7 @@ import { useProfileListings } from '../context/ProfileListingsContext';
 import { useCart } from '../context/CartContext';
 import type { Product, ProductFit } from '../types';
 import { categoryHasFitField, normalizeProductFit } from '../utils/productCategoryFields';
+import { publicUrl } from '../lib/publicUrl';
 
 function shuffle<T>(items: T[]): T[] {
   const arr = [...items];
@@ -31,10 +32,10 @@ type RibbonItem = {
 /** 3px offset: тёмно-зелёная тень при выборе / открытой панели (обводка остаётся чёрной) */
 const categorySelectedShadowClass = 'shadow-[3px_3px_0_0_#00E676]';
 
-const IMG = (name: string) => `/media/images/${name}`;
+const IMG = (name: string) => publicUrl(`media/images/${name}`);
 
 /** undraw empty cart — имя файла со пробелом и скобками */
-const MARKET_EMPTY_ILLU = `/media/images/${encodeURIComponent('undraw_empty-cart_574u (1).svg')}`;
+const MARKET_EMPTY_ILLU = publicUrl(`media/images/${encodeURIComponent('undraw_empty-cart_574u (1).svg')}`);
 
 function MarketListingsEmpty({ hint }: { hint: 'filters' | 'search' }) {
   return (

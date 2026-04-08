@@ -17,8 +17,9 @@ import {
   Trash2,
   type LucideIcon,
 } from 'lucide-react';
+import { publicUrl } from '../lib/publicUrl';
 
-const CART_ICON_SRC = '/media/images/free-icon-shopping-cart-of-checkered-design-34627.png';
+const CART_ICON_SRC = publicUrl('media/images/free-icon-shopping-cart-of-checkered-design-34627.png');
 
 interface NavLink {
   to: string;
@@ -165,7 +166,7 @@ export default function Navbar() {
           <div className="flex-1 flex items-center">
             <Link to="/" onClick={handleLogoClick} className="flex items-center gap-0.5 group">
               <img
-                src="/media/images/background-removed.png"
+                src={publicUrl('media/images/background-removed.png')}
                 alt="SmashMarket"
                 className="w-11 h-11 object-contain group-hover:scale-110 transition-transform"
               />
@@ -396,7 +397,7 @@ export default function Navbar() {
                 className="flex min-w-0 items-center gap-2"
               >
                 <img
-                  src="/media/images/background-removed.png"
+                  src={publicUrl('media/images/background-removed.png')}
                   alt=""
                   className="h-10 w-10 shrink-0 object-contain"
                   width={40}

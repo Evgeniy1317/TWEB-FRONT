@@ -1,7 +1,8 @@
 import type { Product, Court, Tournament, StringingOrder, AppUser } from '../types';
+import { publicUrl } from '../lib/publicUrl';
 
 /** Те же файлы, что превью категорий на странице барахолки (`MarketPage`). */
-const M = (file: string) => `/media/images/${file}`;
+const M = (file: string) => publicUrl(`media/images/${file}`);
 
 /** 12 карточек — по одной на категорию (без «Другое»), картинка = иконка категории. */
 const productsSeed: Product[] = [

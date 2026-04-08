@@ -10,8 +10,9 @@ import {
   getAuthEmailInputClass,
 } from '../components/auth/authFieldClasses';
 import { getPostAuthRedirect } from '../utils/postAuthRedirect';
+import { publicUrl } from '../lib/publicUrl';
 
-const LOGIN_IMAGE = '/media/images/original-54780b5d8c3bd316e079f55fc52e6baf.webp';
+const LOGIN_IMAGE = publicUrl('media/images/original-54780b5d8c3bd316e079f55fc52e6baf.webp');
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');

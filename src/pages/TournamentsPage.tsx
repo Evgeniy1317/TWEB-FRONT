@@ -1,6 +1,7 @@
 import { ExternalLink, MapPin } from 'lucide-react';
+import { publicUrl } from '../lib/publicUrl';
 
-const UPCOMING_POSTER_SRC = '/media/images/5377478215317787404.jpg';
+const UPCOMING_POSTER_SRC = publicUrl('media/images/5377478215317787404.jpg');
 
 /** Кнопка «Геолокация»: карты по клубу (текст адреса в блоке — как на афише, отдельно) */
 const UPCOMING_MAPS_URL =
@@ -14,9 +15,9 @@ const UPCOMING_CATEGORIES = ['OPEN', 'A', 'B', 'C', 'U15', 'U13'] as const;
 
 /** Прошедшие турниры: только афиши, порядок слева направо / сверху вниз */
 const PAST_TOURNAMENT_POSTERS = [
-  '/media/images/5377478215317787407.jpg',
-  '/media/images/5377478215317787409.jpg',
-  '/media/images/5377478215317787408.jpg',
+  publicUrl('media/images/5377478215317787407.jpg'),
+  publicUrl('media/images/5377478215317787409.jpg'),
+  publicUrl('media/images/5377478215317787408.jpg'),
 ] as const;
 
 export default function TournamentsPage() {

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ShoppingBag, Wrench, ArrowRight, ImageIcon } from 'lucide-react';
+import { publicUrl } from '../lib/publicUrl';
 
 function ImagePlaceholder({ label, className = '' }: { label: string; className?: string }) {
   return (
@@ -14,11 +15,11 @@ function ImagePlaceholder({ label, className = '' }: { label: string; className?
 }
 
 const homeShowcaseImages = {
-  heroDesign: `/media/images/${encodeURIComponent('Hero (2).png')}`,
-  productCardBanner: `/media/images/${encodeURIComponent('Free Product Card.png')}`,
-  macbook: `/media/images/${encodeURIComponent('MacBook Air (2022).png')}`,
-  iphoneHand: `/media/images/${encodeURIComponent('Hand and iPhone 16 Pro.png')}`,
-  iphoneAir: `/media/images/${encodeURIComponent('Free iPhone Air.png')}`,
+  heroDesign: publicUrl(`media/images/${encodeURIComponent('Hero (2).png')}`),
+  productCardBanner: publicUrl(`media/images/${encodeURIComponent('Free Product Card.png')}`),
+  macbook: publicUrl(`media/images/${encodeURIComponent('MacBook Air (2022).png')}`),
+  iphoneHand: publicUrl(`media/images/${encodeURIComponent('Hand and iPhone 16 Pro.png')}`),
+  iphoneAir: publicUrl(`media/images/${encodeURIComponent('Free iPhone Air.png')}`),
 } as const;
 
 function StepBadge({ n }: { n: number }) {
@@ -40,7 +41,7 @@ export default function HomePage() {
         <div className="absolute inset-0 z-0">
           <video
             className="absolute inset-0 h-full w-full object-cover pointer-events-none"
-            src="/media/videos/IMG_3744.mp4"
+            src={publicUrl('media/videos/IMG_3744.mp4')}
             autoPlay
             muted
             loop
@@ -103,7 +104,7 @@ export default function HomePage() {
                 className="flex min-w-0 max-w-full items-center gap-2 text-white transition-opacity hover:opacity-90 sm:gap-2.5"
               >
                 <img
-                  src="/media/images/background-removed.png"
+                  src={publicUrl('media/images/background-removed.png')}
                   alt=""
                   className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
                   width={40}

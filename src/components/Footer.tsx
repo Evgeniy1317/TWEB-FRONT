@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { publicUrl } from '../lib/publicUrl';
 
 const SOCIAL = {
   telegram: 'https://t.me/qweqweqweeqwe',
@@ -41,11 +42,11 @@ function IconFacebook({ className }: { className?: string }) {
 const socialClass =
   'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/[0.12] bg-white/[0.05] text-white/70 transition-colors hover:border-primary/35 hover:bg-primary/10 hover:text-primary';
 
-const ILLUSTRATION_DEFAULT = '/media/images/undraw_message-sent_iyz6.svg';
-const ILLUSTRATION_MARKET = '/media/images/undraw_social-dashboard_81sv.svg';
-const ILLUSTRATION_STRINGING = '/media/images/undraw_social-expert_wfam.svg';
-const ILLUSTRATION_COURTS = '/media/images/undraw_social-growth_osro.svg';
-const ILLUSTRATION_HOME = '/media/images/undraw_social-notifications_zahe.svg';
+const ILLUSTRATION_DEFAULT = publicUrl('media/images/undraw_message-sent_iyz6.svg');
+const ILLUSTRATION_MARKET = publicUrl('media/images/undraw_social-dashboard_81sv.svg');
+const ILLUSTRATION_STRINGING = publicUrl('media/images/undraw_social-expert_wfam.svg');
+const ILLUSTRATION_COURTS = publicUrl('media/images/undraw_social-growth_osro.svg');
+const ILLUSTRATION_HOME = publicUrl('media/images/undraw_social-notifications_zahe.svg');
 
 function illustrationForPath(pathname: string): string {
   if (pathname === '/market' || pathname.startsWith('/market/')) return ILLUSTRATION_MARKET;
@@ -69,7 +70,7 @@ export default function Footer() {
             className="group flex w-fit shrink-0 items-center gap-2.5"
           >
             <img
-              src="/media/images/background-removed.png"
+              src={publicUrl('media/images/background-removed.png')}
               alt="SmashMarket"
               className="h-10 w-10 object-contain opacity-95 transition-opacity group-hover:opacity-100"
               width={40}

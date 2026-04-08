@@ -10,9 +10,10 @@ import {
   getAuthEmailInputClass,
 } from '../components/auth/authFieldClasses';
 import { getPostAuthRedirect } from '../utils/postAuthRedirect';
+import { publicUrl } from '../lib/publicUrl';
 
 const REGISTER_IMAGE = encodeURI(
-  '/media/images/original-34b544577285f74d3acfa8c67777a2ae (1).webp',
+  publicUrl('media/images/original-34b544577285f74d3acfa8c67777a2ae (1).webp'),
 );
 
 export default function RegisterPage() {

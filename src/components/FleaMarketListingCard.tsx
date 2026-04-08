@@ -5,8 +5,9 @@ import {
   categoryHasSizeField,
   fitLabel,
 } from '../utils/productCategoryFields';
+import { publicUrl } from '../lib/publicUrl';
 
-const CART_ICON_SRC = '/media/images/free-icon-shopping-cart-of-checkered-design-34627.png';
+const CART_ICON_SRC = publicUrl('media/images/free-icon-shopping-cart-of-checkered-design-34627.png');
 
 const categoryLabel: Record<Product['category'], string> = {
   rackets: 'Ракетки',

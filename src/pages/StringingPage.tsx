@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { publicUrl } from '../lib/publicUrl';
 import {
   ArrowRight,
   Check,
@@ -48,12 +49,12 @@ interface OrderForm {
   stringType: string;
 }
 
-const STRINGING_HERO_IMG = '/media/images/original-7aa6660ec4e2a8199a342ced2a016ac5.webp';
+const STRINGING_HERO_IMG = publicUrl('media/images/original-7aa6660ec4e2a8199a342ced2a016ac5.webp');
 
 /** Портрет мастера: положите файл в public/media/images/ (например stringing-master.webp) */
-const STRINGING_MASTER_IMG = '/media/images/5368680524567746267.jpg';
+const STRINGING_MASTER_IMG = publicUrl('media/images/5368680524567746267.jpg');
 
-const STRINGING_VIDEO_SRC = '/media/videos/IMG_0198.mp4';
+const STRINGING_VIDEO_SRC = publicUrl('media/videos/IMG_0198.mp4');
 
 const STRINGING_FAQ = [
   {
