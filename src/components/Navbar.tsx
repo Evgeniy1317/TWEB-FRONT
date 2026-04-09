@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type MouseEvent } from 'react';
+import { Fragment, useState, useEffect, useRef, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -13,7 +13,6 @@ import {
   X,
   LogIn,
   UserPlus,
-  Globe,
   Trash2,
   type LucideIcon,
 } from 'lucide-react';
@@ -34,20 +33,11 @@ const navLinks: NavLink[] = [
   { to: '/tournaments', label: 'Турниры', icon: Trophy },
 ];
 
-const languages = [
-  { code: 'ru', label: 'Русский' },
-  { code: 'en', label: 'English' },
-  { code: 'ro', label: 'Română' },
-] as const;
-
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState<string>('ru');
   /** Только /market: прячем шапку при скролле вниз, показываем при скролле вверх */
   const [marketNavHidden, setMarketNavHidden] = useState(false);
-  const langRef = useRef<HTMLDivElement>(null);
   const cartWrapRef = useRef<HTMLDivElement>(null);
   const marketScrollLastY = useRef(0);
   const mobileOpenRef = useRef(false);
@@ -100,9 +90,6 @@ export default function Navbar() {
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (langRef.current && !langRef.current.contains(e.target as Node)) {
-        setLangOpen(false);
-      }
       if (cartWrapRef.current && !cartWrapRef.current.contains(e.target as Node)) {
         setCartOpen(false);
       }
@@ -114,7 +101,6 @@ export default function Navbar() {
   useEffect(() => {
     if (!mobileOpen) return;
     setCartOpen(false);
-    setLangOpen(false);
   }, [mobileOpen]);
 
   useEffect(() => {
@@ -134,12 +120,6 @@ export default function Navbar() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [mobileOpen]);
-
-  const handleLangChange = (code: string) => {
-    setCurrentLang(code);
-    setLangOpen(false);
-    // TODO: интеграция i18n
-  };
 
   const handleLogoClick = (e: MouseEvent<HTMLAnchorElement>) => {
     if (location.pathname === '/') {
@@ -176,7 +156,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Center — nav + lang */}
+          {/* Center — nav */}
           <div
             className={`hidden md:flex items-center gap-2.5 rounded-none px-2.5 py-2 transition-[background-color,border-color,box-shadow] duration-200 ${
               homeAtTop
@@ -184,72 +164,42 @@ export default function Navbar() {
                 : 'border border-white/10 bg-dark-light'
             }`}
           >
-            {navLinks.map(({ to, label, icon: Icon }) => {
+            {navLinks.map(({ to, label, icon: Icon }, index) => {
               const isActive = location.pathname === to;
               return (
-                <Link
-                  key={to}
-                  to={to}
-                  className="group flex items-center gap-2 rounded-sm px-7 py-2 text-[15px] font-medium transition-colors duration-150 hover:bg-transparent"
-                >
-                  <Icon
-                    size={18}
-                    className={`shrink-0 transition-colors duration-150 ${
-                      isActive
-                        ? 'text-primary'
-                        : 'text-white group-hover:text-primary'
-                    }`}
-                    aria-hidden
-                  />
-                  <span
-                    className={
-                      isActive
-                        ? 'text-primary'
-                        : 'text-white transition-colors duration-150 group-hover:text-primary'
-                    }
+                <Fragment key={to}>
+                  {index > 0 && (
+                    <div
+                      className="h-5 w-px shrink-0 bg-white/20"
+                      aria-hidden
+                    />
+                  )}
+                  <Link
+                    to={to}
+                    className="group flex items-center gap-2 rounded-sm px-6 py-2 text-[15px] font-medium transition-colors duration-150 hover:bg-transparent"
                   >
-                    {label}
-                  </span>
-                </Link>
-              );
-            })}
-
-            <div className="mx-0.5 h-5 w-px shrink-0 bg-white/12" aria-hidden />
-
-            <div ref={langRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setLangOpen(!langOpen)}
-                className="group flex items-center gap-2 rounded-sm px-5 py-2 text-[15px] font-medium transition-colors duration-150 hover:bg-transparent"
-              >
-                <Globe
-                  size={18}
-                  className="shrink-0 text-white transition-colors duration-150 group-hover:text-primary"
-                  aria-hidden
-                />
-                <span className="uppercase text-sm tracking-wider text-white transition-colors duration-150 group-hover:text-primary">
-                  {currentLang}
-                </span>
-              </button>
-
-              {langOpen && (
-                <div className="absolute right-0 mt-4 w-40 rounded-none bg-dark shadow-xl overflow-hidden border border-white/10">
-                  {languages.map(({ code, label }) => (
-                    <button
-                      key={code}
-                      onClick={() => handleLangChange(code)}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                        currentLang === code
-                          ? 'bg-primary/20 text-primary font-medium'
-                          : 'text-white/90 hover:bg-white/10 hover:text-white'
+                    <Icon
+                      size={18}
+                      className={`shrink-0 transition-colors duration-150 ${
+                        isActive
+                          ? 'text-primary'
+                          : 'text-white group-hover:text-primary'
                       }`}
+                      aria-hidden
+                    />
+                    <span
+                      className={
+                        isActive
+                          ? 'text-primary'
+                          : 'text-white transition-colors duration-150 group-hover:text-primary'
+                      }
                     >
                       {label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                    </span>
+                  </Link>
+                </Fragment>
+              );
+            })}
           </div>
 
           {/* Right — cart (только для авторизованных) + auth */}
@@ -443,26 +393,6 @@ export default function Navbar() {
                   );
                 })}
               </nav>
-
-              <div className="mx-auto mt-6 max-w-lg border-t-2 border-dashed border-black/15 pt-5">
-                <p className="mb-2 text-[10px] font-black uppercase tracking-wider text-neutral-500">Язык</p>
-                <div className="flex flex-wrap gap-2">
-                  {languages.map(({ code, label }) => (
-                    <button
-                      key={code}
-                      type="button"
-                      onClick={() => handleLangChange(code)}
-                      className={`rounded-lg border-2 px-3 py-2 text-sm font-bold transition-colors ${
-                        currentLang === code
-                          ? 'border-primary bg-primary/15 text-gray-900'
-                          : 'border-black/10 bg-white text-gray-800 hover:border-black/25'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <div className="mx-auto mt-6 max-w-lg flex flex-col gap-2 border-t-2 border-dashed border-black/15 pt-5">
                 <Link
