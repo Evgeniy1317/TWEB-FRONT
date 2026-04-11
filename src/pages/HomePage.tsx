@@ -94,69 +94,33 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Витрина: один прямоугольный блок без скруглений, шапка и фото внутри рамки */}
-      <section className="bg-black pt-16 pb-14 sm:pt-24 sm:pb-20 lg:pt-28 lg:pb-24">
-        <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex min-h-0 flex-col overflow-hidden border-2 border-white/20 bg-neutral-950 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.7)]">
-            <div className="flex shrink-0 min-w-0 flex-wrap items-center justify-between gap-3 border-b border-white/15 bg-neutral-950 px-3 py-3 sm:gap-4 sm:px-5 sm:py-4 lg:px-6 lg:py-5">
-              <Link
-                to="/"
-                className="flex min-w-0 max-w-full items-center gap-2 text-white transition-opacity hover:opacity-90 sm:gap-2.5"
-              >
-                <img
-                  src={publicUrl('media/images/background-removed.png')}
-                  alt=""
-                  className="h-8 w-8 shrink-0 object-contain sm:h-10 sm:w-10"
-                  width={40}
-                  height={40}
-                  decoding="async"
-                />
-                <span className="min-w-0 break-words text-base font-bold tracking-tight sm:text-xl lg:text-2xl">
-                  Smash<span className="text-primary">Market</span>
-                </span>
-              </Link>
-              <div className="flex min-w-0 flex-shrink-0 flex-wrap items-center justify-end gap-2 sm:gap-3">
-                <Link
-                  to="/market"
-                  className="inline-flex items-center gap-1.5 bg-primary px-3 py-2 font-heading text-xs font-semibold text-dark transition-transform hover:-translate-y-0.5 sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm lg:text-base"
-                >
-                  В маркет
-                  <ArrowRight size={16} className="shrink-0 sm:h-[18px] sm:w-[18px]" aria-hidden />
-                </Link>
-                <Link
-                  to="/register"
-                  className="inline-flex items-center gap-1.5 border-2 border-white/30 bg-transparent px-3 py-2 font-heading text-xs font-semibold text-white transition-colors hover:border-primary hover:text-primary sm:px-5 sm:py-2.5 sm:text-sm lg:text-base"
-                >
-                  Создать аккаунт
-                </Link>
-              </div>
-            </div>
-            <div className="relative min-h-[min(48vh,420px)] w-full overflow-hidden sm:min-h-[min(54vh,520px)] lg:min-h-[min(58vh,680px)]">
-              <img
-                src={homeShowcaseImages.heroDesign}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover object-center"
-                width={1600}
-                height={1200}
-                decoding="async"
-                draggable={false}
-              />
-            </div>
-          </div>
+      {/* Витрина — скриншот сайта */}
+      <section className="bg-black py-16 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-8 text-center font-display text-2xl font-bold text-white sm:mb-10 sm:text-3xl">
+            Всё для бадминтона <span className="text-primary">на одной платформе</span>
+          </h2>
+          <img
+            src={publicUrl(`media/images/${encodeURIComponent('Google Chrome - Dark.png')}`)}
+            alt="SmashMarket в браузере"
+            className="block h-auto w-full"
+            decoding="async"
+            draggable={false}
+          />
         </div>
       </section>
 
       {/* Чередование блоков: снимок, текст, снимок */}
-      <section className="bg-black py-20 sm:py-24 lg:py-28">
+      <section className="bg-black py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-7xl px-6 sm:px-10">
-          <header className="mx-auto mb-16 max-w-2xl text-center lg:mb-20">
+          <header className="mx-auto mb-12 max-w-2xl text-center lg:mb-14">
             <h2 className="font-display text-3xl font-bold text-white sm:text-4xl">Как это выглядит в деле</h2>
             <p className="mt-4 text-base leading-relaxed text-white/50 sm:text-lg">
               Один сервис на всех экранах: от регистрации до перетяжки и личного кабинета, интерфейс остаётся узнаваемым и удобным.
             </p>
           </header>
 
-          <div className="flex flex-col gap-20 lg:gap-28">
+          <div className="flex flex-col gap-16 lg:gap-20">
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
               <div className="order-1 lg:order-1">
                 <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-[0_32px_80px_-20px_rgba(0,0,0,0.75)]">
@@ -253,12 +217,12 @@ export default function HomePage() {
       </section>
 
       {/* --- Барахолка: только баннер и кнопки --- */}
-      <section className="bg-black py-14 sm:py-16 lg:py-20">
+      <section className="bg-black py-10 sm:py-12 lg:py-14">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <img
             src={homeShowcaseImages.productCardBanner}
             alt=""
-            className="block h-auto w-full"
+            className="block h-auto w-full rounded-2xl"
             width={1600}
             height={900}
             decoding="async"
