@@ -1,3 +1,4 @@
+import type { KeyboardEvent } from 'react';
 import { LayoutGrid, SlidersHorizontal } from 'lucide-react';
 import type { ProductFit } from '../types';
 import { FIT_FORM_OPTIONS, SIZE_OPTIONS_BY_CATEGORY } from '../utils/productCategoryFields';
@@ -43,6 +44,14 @@ const conditionOptions: { id: MarketConditionFilter; label: string }[] = [
   { id: 'new', label: 'Новое' },
   { id: 'used', label: 'Б/у' },
 ];
+
+const sanitizePriceInput = (value: string) => value.replace(/\D+/g, '');
+
+function blockNonNumericKeys(event: KeyboardEvent<HTMLInputElement>) {
+  if (['e', 'E', '+', '-', '.', ','].includes(event.key)) {
+    event.preventDefault();
+  }
+}
 
 function FilterFields({
   priceMin,
@@ -162,24 +171,26 @@ function FilterFields({
           <label className="min-w-0 flex-1">
             <span className="sr-only">От</span>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={0}
+              pattern="[0-9]*"
               placeholder="От"
               value={priceMin}
-              onChange={e => onPriceMinChange(e.target.value)}
+              onKeyDown={blockNonNumericKeys}
+              onChange={e => onPriceMinChange(sanitizePriceInput(e.target.value))}
               className="input-no-spin sketch-input w-full border-2 border-black bg-white px-2 py-2 text-sm font-bold tabular-nums placeholder:font-normal placeholder:text-neutral-400"
             />
           </label>
           <label className="min-w-0 flex-1">
             <span className="sr-only">До</span>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
-              min={0}
+              pattern="[0-9]*"
               placeholder="До"
               value={priceMax}
-              onChange={e => onPriceMaxChange(e.target.value)}
+              onKeyDown={blockNonNumericKeys}
+              onChange={e => onPriceMaxChange(sanitizePriceInput(e.target.value))}
               className="input-no-spin sketch-input w-full border-2 border-black bg-white px-2 py-2 text-sm font-bold tabular-nums placeholder:font-normal placeholder:text-neutral-400"
             />
           </label>

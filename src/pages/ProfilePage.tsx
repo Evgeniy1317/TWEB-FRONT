@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -116,6 +116,14 @@ const initialListingForm: ListingFormState = {
   sizeLabel: '',
   fit: 'unisex',
 };
+
+const sanitizePriceInput = (value: string) => value.replace(/\D+/g, '');
+
+function blockNonNumericKeys(event: KeyboardEvent<HTMLInputElement>) {
+  if (['e', 'E', '+', '-', '.', ','].includes(event.key)) {
+    event.preventDefault();
+  }
+}
 
 function productToForm(p: Product): ListingFormState {
   const previews = [p.image, ...(p.extraImages ?? [])].slice(0, 8);
@@ -286,9 +294,14 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
-      navigate('/login');
+      navigate('/login', {
+        replace: true,
+        state: {
+          from: `${location.pathname}${location.search}${location.hash}`,
+        },
+      });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, location.pathname, location.search, location.hash]);
 
   useEffect(() => {
     if (!user) return;
@@ -761,11 +774,13 @@ export default function ProfilePage() {
                 </label>
                 <input
                   id="listing-price"
-                  type="number"
-                  min="1"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   required
                   value={listingForm.price}
-                  onChange={event => updateListingForm('price', event.target.value)}
+                  onKeyDown={blockNonNumericKeys}
+                  onChange={event => updateListingForm('price', sanitizePriceInput(event.target.value))}
                   placeholder="Введите цену"
                   className="input-no-spin w-full border-2 border-black bg-white px-3 py-3 text-sm font-bold outline-none placeholder:font-normal placeholder:text-neutral-400"
                 />
