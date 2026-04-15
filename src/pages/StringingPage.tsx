@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { publicUrl } from '../lib/publicUrl';
+import { useAuth } from '../context/AuthContext';
+import { useStringingOrders } from '../context/StringingOrdersContext';
+import StatusTracker from '../components/StatusTracker';
+import type { StringingOrderStatus } from '../types';
 import {
   ArrowRight,
   Check,
+  CheckCircle2,
   ChevronDown,
   ClipboardList,
   Instagram,
@@ -56,6 +61,12 @@ const STRINGING_MASTER_IMG = publicUrl('media/images/5368680524567746267.jpg');
 
 const STRINGING_VIDEO_SRC = publicUrl('media/videos/IMG_0198.mp4');
 
+const STRINGING_STATUS_LABEL: Record<StringingOrderStatus, string> = {
+  handover: 'В передаче',
+  in_progress: 'Получена, в работе',
+  ready: 'Готово',
+};
+
 const STRINGING_FAQ = [
   {
     q: 'Сколько времени занимает перетяжка?',
@@ -82,6 +93,8 @@ const MASTER_HIGHLIGHTS = [
 ] as const;
 
 export default function StringingPage() {
+  const { user, isAuthenticated } = useAuth();
+  const { orders: allStringingOrders, addOrder } = useStringingOrders();
   const [activeTab, setActiveTab] = useState<'order' | 'history'>('order');
   const [form, setForm] = useState<OrderForm>({
     racketModel: '',
@@ -89,6 +102,13 @@ export default function StringingPage() {
     stringType: STRING_IN_STOCK[0].id,
   });
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [pendingOrderDraft, setPendingOrderDraft] = useState<{
+    racketModel: string;
+    tension: string;
+    stringTypeLabel: string;
+    totalLei: number;
+  } | null>(null);
   const [tensionCustomOpen, setTensionCustomOpen] = useState(false);
   const [customTensionDraft, setCustomTensionDraft] = useState('');
   const [masterPhotoError, setMasterPhotoError] = useState(false);
@@ -121,21 +141,44 @@ export default function StringingPage() {
   const totalLei = selectedString?.priceLei ?? 0;
 
   useEffect(() => {
-    if (!contactModalOpen && !tensionCustomOpen) return;
+    if (!contactModalOpen && !tensionCustomOpen && !successModalOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [contactModalOpen, tensionCustomOpen]);
+  }, [contactModalOpen, tensionCustomOpen, successModalOpen]);
 
   const tensionIsPreset = TENSION_PRESETS.some(p => String(p) === form.tension);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!isValidTensionKg(form.tension)) return;
+    const sel = STRING_IN_STOCK.find(s => s.id === form.stringType);
+    setPendingOrderDraft({
+      racketModel: form.racketModel,
+      tension: form.tension,
+      stringTypeLabel: sel ? `${sel.name} — ${sel.priceLei} lei` : form.stringType,
+      totalLei: sel?.priceLei ?? 0,
+    });
     setContactModalOpen(true);
   };
+
+  const confirmSaveOrderFromModal = () => {
+    if (!user || !pendingOrderDraft) return;
+    addOrder({
+      ...pendingOrderDraft,
+      clientUserId: user.id,
+      clientName: user.name,
+    });
+    setContactModalOpen(false);
+    setSuccessModalOpen(true);
+    setActiveTab('history');
+    setForm({ racketModel: '', tension: '11.5', stringType: STRING_IN_STOCK[0].id });
+    setPendingOrderDraft(null);
+  };
+
+  const sortedAllOrders = [...allStringingOrders].sort((a, b) => b.id - a.id);
 
   const applyCustomTension = () => {
     const normalized = customTensionDraft.trim().replace(',', '.');
@@ -208,7 +251,7 @@ export default function StringingPage() {
               }`}
             >
               <ClipboardList size={16} strokeWidth={2.5} />
-              Мои заказы
+              Все заказы
             </button>
           </div>
 
@@ -306,29 +349,77 @@ export default function StringingPage() {
             )}
 
             {activeTab === 'history' && (
-              <div className="border-2 border-black bg-white p-5 sketch-shadow sm:p-6 sm:pr-7 rounded-md">
-                <div className="flex items-start gap-4 sm:gap-5">
-                  <div
-                    className="flex h-12 w-12 shrink-0 items-center justify-center self-start border-2 border-black shadow-[2px_2px_0_0_#000] sm:h-[3.25rem] sm:w-[3.25rem]"
-                    style={{ backgroundColor: '#E6EDA5' }}
-                    aria-hidden
+              <div className="space-y-4">
+                <div className="border-2 border-black bg-white p-4 sketch-shadow sm:p-5 rounded-md">
+                  <h3 className="font-black text-lg text-gray-900 sm:text-xl">Все заказы</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-700">
+                    Общий список заявок на перетяжку, которые мастер принял в работу. В профиле во вкладке «Мои заказы»
+                    отображаются только ваши заказы — с теми же этапами, что и в этом списке.
+                  </p>
+                  <Link
+                    to="/profile?tab=orders"
+                    className="mt-4 inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5 sm:w-auto"
                   >
-                    <ClipboardList className="h-6 w-6 text-black" strokeWidth={2.5} />
-                  </div>
-                  <div className="min-w-0 flex-1 pt-0.5">
-                    <h3 className="font-black text-lg leading-tight text-gray-900 sm:text-xl">Мои заказы и статус</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                      Смотрите список и статус перетяжки в личном профиле.
-                    </p>
-                    <Link
-                      to="/profile?tab=orders"
-                      className="mt-5 inline-flex w-full items-center justify-center gap-2 border-2 border-black bg-primary px-5 py-3 text-sm font-black uppercase tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5 sm:w-auto"
-                    >
-                      Перейти в профиль
-                      <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
-                    </Link>
-                  </div>
+                    Мои заказы в профиле
+                    <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+                  </Link>
                 </div>
+
+                {sortedAllOrders.length === 0 ? (
+                  <p className="border-2 border-black bg-neutral-50 p-4 text-sm text-neutral-700">Пока нет заказов.</p>
+                ) : (
+                  sortedAllOrders.map(order => {
+                    const mine = isAuthenticated && user?.id === order.clientUserId;
+                    return (
+                      <article
+                        key={order.id}
+                        className={`border-2 border-black bg-white p-4 sketch-shadow sm:p-5 rounded-md ${
+                          mine ? 'ring-2 ring-primary ring-offset-2' : ''
+                        }`}
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                              Заказ #{order.id}
+                              {mine ? ' · ваш' : ''}
+                            </p>
+                            <h4 className="mt-1 font-black text-base text-gray-900 sm:text-lg">{order.racketModel}</h4>
+                            <p className="mt-1 text-sm text-neutral-600">
+                              {(mine ? order.clientName ?? 'Вы' : 'Клиент') +
+                                ' · ' +
+                                order.stringType +
+                                ' · ' +
+                                formatTensionKgDisplay(order.tension) +
+                                ' кг · ' +
+                                order.createdAt +
+                                (order.totalLei != null ? ` · ${order.totalLei} lei` : '')}
+                            </p>
+                          </div>
+                          <div className="shrink-0 sm:pt-1">
+                            <p className="text-[10px] font-black uppercase tracking-wide text-neutral-500">Статус</p>
+                            <p
+                              className={`mt-1 inline-block border-2 border-black px-2.5 py-1.5 text-xs font-black ${
+                                order.status === 'handover'
+                                  ? 'bg-[#E6EDA5] text-black'
+                                  : order.status === 'ready'
+                                    ? 'bg-primary/30 text-black'
+                                    : 'bg-neutral-100 text-black'
+                              }`}
+                            >
+                              {STRINGING_STATUS_LABEL[order.status]}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-4 border-t-2 border-neutral-200 pt-4">
+                          <p className="mb-2 text-[10px] font-black uppercase tracking-wide text-neutral-500">
+                            Дорожка статуса
+                          </p>
+                          <StatusTracker status={order.status} />
+                        </div>
+                      </article>
+                    );
+                  })
+                )}
               </div>
             )}
           </div>
@@ -554,7 +645,10 @@ export default function StringingPage() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="stringing-contact-modal-title"
-          onClick={() => setContactModalOpen(false)}
+          onClick={() => {
+            setContactModalOpen(false);
+            setPendingOrderDraft(null);
+          }}
         >
           <div
             className="relative w-full max-w-sm border-2 border-black bg-white p-5 shadow-[4px_4px_0_0_#000] sm:p-6"
@@ -562,7 +656,10 @@ export default function StringingPage() {
           >
             <button
               type="button"
-              onClick={() => setContactModalOpen(false)}
+              onClick={() => {
+                setContactModalOpen(false);
+                setPendingOrderDraft(null);
+              }}
               className="absolute right-2 top-2 rounded border-2 border-transparent p-1 text-black hover:border-black"
               aria-label="Закрыть"
             >
@@ -610,6 +707,104 @@ export default function StringingPage() {
                 </a>
               </li>
             </ul>
+
+            <div className="mt-5 border-t-2 border-neutral-200 pt-4">
+              <p className="text-xs font-bold leading-relaxed text-neutral-700">
+                После связи с мастером нажмите «Сохранить в профиль» — заказ появится во вкладке «Все заказы» на этой
+                странице и в профиле во вкладке «Мои заказы».
+              </p>
+              {!isAuthenticated ? (
+                <p className="mt-3 text-sm text-neutral-800">
+                  <Link
+                    to="/login"
+                    state={{ from: '/stringing' }}
+                    className="font-black underline decoration-2 underline-offset-2"
+                  >
+                    Войдите
+                  </Link>
+                  , чтобы сохранить заказ в профиль.
+                </p>
+              ) : null}
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContactModalOpen(false);
+                    setPendingOrderDraft(null);
+                  }}
+                  className="flex-1 border-2 border-black bg-white py-2.5 text-xs font-black uppercase text-gray-800"
+                >
+                  Закрыть
+                </button>
+                <button
+                  type="button"
+                  disabled={!user || !pendingOrderDraft}
+                  onClick={confirmSaveOrderFromModal}
+                  className="flex-1 border-2 border-black bg-primary py-2.5 text-xs font-black uppercase text-black disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  Сохранить в профиль
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {successModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="stringing-success-modal-title"
+          onClick={() => setSuccessModalOpen(false)}
+        >
+          <div
+            className="relative w-full max-w-sm border-2 border-black bg-white p-5 shadow-[4px_4px_0_0_#000] sm:p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setSuccessModalOpen(false)}
+              className="absolute right-2 top-2 rounded border-2 border-transparent p-1 text-black hover:border-black"
+              aria-label="Закрыть"
+            >
+              <X className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+            <div className="flex items-start gap-3 pr-8">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-black bg-primary shadow-[2px_2px_0_0_#000]">
+                <CheckCircle2 className="h-6 w-6 text-black" strokeWidth={2.5} aria-hidden />
+              </div>
+              <div>
+                <h3 id="stringing-success-modal-title" className="font-black text-base text-gray-900 sm:text-lg">
+                  Заказ добавлен
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-neutral-700">
+                  Заказ появился в профиле во вкладке «Мои заказы» и в списке «Все заказы» на этой странице. Первый этап
+                  — «В передаче»: ожидается передача ракетки мастеру; дальнейшие этапы обновит мастер по мере работы.
+                </p>
+                <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+                  Когда ракетка будет готова к выдаче, на указанную в профиле электронную почту придёт письмо с
+                  напоминанием забрать заказ.
+                </p>
+              </div>
+            </div>
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => setSuccessModalOpen(false)}
+                className="flex-1 border-2 border-black bg-white py-2.5 text-xs font-black uppercase text-gray-800"
+              >
+                Понятно
+              </button>
+              <Link
+                to="/profile?tab=orders"
+                onClick={() => setSuccessModalOpen(false)}
+                className="flex flex-1 items-center justify-center gap-2 border-2 border-black bg-primary py-2.5 text-center text-xs font-black uppercase text-black"
+              >
+                В профиль
+                <ArrowRight className="h-4 w-4" strokeWidth={2.5} aria-hidden />
+              </Link>
+            </div>
           </div>
         </div>
       )}

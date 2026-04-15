@@ -262,30 +262,42 @@ export const tournaments: Tournament[] = [
   },
 ];
 
-export const stringingOrders: StringingOrder[] = [
+/**
+ * Заглушка списка перетяжки (до подключения API): два чужих заказа и один ваш — `clientUserId` как у `mockUser`.
+ */
+export const stringingOrdersSeed: StringingOrder[] = [
   {
     id: 1,
-    racketModel: 'Yonex Astrox 88D',
-    tension: '26',
-    stringType: 'BG65',
-    status: 'ready',
-    createdAt: '2026-03-10',
+    racketModel: 'Victor Auraspeed 90K',
+    tension: '11',
+    stringType: 'VBS-66 Nano',
+    status: 'handover',
+    createdAt: '2026-04-02',
+    clientUserId: 901,
+    clientName: 'Заказчик',
+    totalLei: 150,
   },
   {
     id: 2,
-    racketModel: 'Li-Ning Windstorm 72',
-    tension: '24',
-    stringType: 'BG80',
+    racketModel: 'Li-Ning Halbertec 8000',
+    tension: '12',
+    stringType: 'No.1 string',
     status: 'in_progress',
-    createdAt: '2026-03-15',
+    createdAt: '2026-04-05',
+    clientUserId: 902,
+    clientName: 'Заказчик',
+    totalLei: 200,
   },
   {
     id: 3,
-    racketModel: 'Victor DriveX 9X',
-    tension: '25',
-    stringType: 'Nanogy 98',
-    status: 'received',
-    createdAt: '2026-03-17',
+    racketModel: 'Yonex Astrox 88D',
+    tension: '11,5',
+    stringType: 'BG80 Power',
+    status: 'in_progress',
+    createdAt: '2026-04-08',
+    clientUserId: 1,
+    clientName: 'Алексей Морарь',
+    totalLei: 200,
   },
 ];
 

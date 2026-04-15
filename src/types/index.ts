@@ -16,7 +16,11 @@ export type ProductCondition = 'new' | 'used';
 
 /** Мужское / женское / универсальное — для категорий одежды, обуви и т.п. */
 export type ProductFit = 'mens' | 'womens' | 'unisex';
-export type OrderStatus = 'received' | 'in_progress' | 'ready';
+/** Статусы перетяжки: передача ракетки → в работе → готово */
+export type StringingOrderStatus = 'handover' | 'in_progress' | 'ready';
+
+/** @deprecated Используйте StringingOrderStatus для перетяжки */
+export type OrderStatus = StringingOrderStatus;
 
 export interface Product {
   id: number;
@@ -77,8 +81,11 @@ export interface StringingOrder {
   racketModel: string;
   tension: string;
   stringType: string;
-  status: OrderStatus;
+  status: StringingOrderStatus;
   createdAt: string;
+  clientUserId: number;
+  clientName?: string;
+  totalLei?: number;
 }
 
 export type UserContactPlatform = 'telegram' | 'instagram' | 'viber' | 'facebook' | 'whatsapp';

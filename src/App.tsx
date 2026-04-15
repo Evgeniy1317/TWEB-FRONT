@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { StringingOrdersProvider } from './context/StringingOrdersContext';
 import { CartProvider } from './context/CartContext';
 import { ProfileListingsProvider } from './context/ProfileListingsContext';
 import Navbar from './components/Navbar';
@@ -13,6 +14,7 @@ import CourtsPage from './pages/CourtsPage';
 import TournamentsPage from './pages/TournamentsPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ProfilePage from './pages/ProfilePage';
 import ProfileListingDetailPage from './pages/ProfileListingDetailPage';
 
@@ -30,7 +32,8 @@ function AppShell() {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
   const isStringing = pathname === '/stringing';
-  const isAuthFullPage = pathname === '/register' || pathname === '/login';
+  const isAuthFullPage =
+    pathname === '/register' || pathname === '/login' || pathname === '/forgot-password';
   const shellBgClass = isAuthFullPage
     ? 'bg-dark'
     : isStringing
@@ -55,6 +58,7 @@ function AppShell() {
           <Route path="/tournaments" element={<TournamentsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/listing/:id" element={<ProfileListingDetailPage />} />
         </Routes>
@@ -70,11 +74,13 @@ export default function App() {
   return (
     <BrowserRouter basename={routerBasename || undefined}>
       <AuthProvider>
-        <ProfileListingsProvider>
-          <CartProvider>
-            <AppShell />
-          </CartProvider>
-        </ProfileListingsProvider>
+        <StringingOrdersProvider>
+          <ProfileListingsProvider>
+            <CartProvider>
+              <AppShell />
+            </CartProvider>
+          </ProfileListingsProvider>
+        </StringingOrdersProvider>
       </AuthProvider>
     </BrowserRouter>
   );

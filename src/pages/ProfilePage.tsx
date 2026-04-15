@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useState, type ChangeEvent, type FormEvent,
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { stringingOrders } from '../data/mockData';
+import { useStringingOrders } from '../context/StringingOrdersContext';
 import StatusTracker from '../components/StatusTracker';
 import type { Product, ProductCategory, ProductCondition, ProductFit, UserContact, UserContactPlatform } from '../types';
 import {
@@ -274,6 +274,8 @@ export default function ProfilePage() {
   const { user, isAuthenticated, logout, updateProfile } = useAuth();
   const { items: cartItems, count: cartCount, removeFromCart } = useCart();
   const { listings: profileListings, addListing, updateListing, deleteListing } = useProfileListings();
+  const { orders: stringingOrdersAll } = useStringingOrders();
+  const myStringingOrders = user ? stringingOrdersAll.filter(o => o.clientUserId === user.id) : [];
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1011,17 +1013,28 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-4">
-            {stringingOrders.map(order => (
-              <article key={order.id} className="border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
-                <div className="mb-5">
-                  <h3 className="text-lg font-black tracking-tight">{order.racketModel}</h3>
-                  <p className="mt-1 text-sm text-neutral-600">
-                    {order.stringType} • {order.tension} кг • {order.createdAt}
-                  </p>
-                </div>
-                <StatusTracker status={order.status} />
-              </article>
-            ))}
+            {myStringingOrders.length === 0 ? (
+              <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
+                Заказов перетяжки пока нет. Оформите заказ на странице{' '}
+                <Link to="/stringing" className="font-black text-black underline decoration-2 underline-offset-2">
+                  Перетяжка
+                </Link>
+                .
+              </p>
+            ) : (
+              myStringingOrders.map(order => (
+                <article key={order.id} className="border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
+                  <div className="mb-5">
+                    <h3 className="text-lg font-black tracking-tight">{order.racketModel}</h3>
+                    <p className="mt-1 text-sm text-neutral-600">
+                      {order.stringType} • {order.tension} кг • {order.createdAt}
+                      {order.totalLei != null ? ` • ${order.totalLei} lei` : ''}
+                    </p>
+                  </div>
+                  <StatusTracker status={order.status} />
+                </article>
+              ))
+            )}
           </div>
         </section>
       );
