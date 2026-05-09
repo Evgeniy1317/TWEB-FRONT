@@ -11,7 +11,8 @@ interface Step {
 
 const steps: Step[] = [
   { key: 'handover', label: 'В передаче', icon: Truck, accent: 'yellow' },
-  { key: 'in_progress', label: 'В работе', icon: Wrench, accent: 'default' },
+  // "В работе" поярче (отдельный цвет задаём в circleClass ниже)
+  { key: 'in_progress', label: 'В работе', icon: Wrench, accent: 'yellow' },
   { key: 'ready', label: 'Готово', icon: CheckCircle2, accent: 'default' },
 ];
 
@@ -31,20 +32,18 @@ export default function StatusTracker({ status }: StatusTrackerProps) {
   return (
     <div className="flex w-full items-start gap-0">
       {steps.map((step, idx) => {
-        const isCompleted = idx <= currentStep;
         const isCurrent = idx === currentStep;
         const Icon = step.icon;
         const yellow = step.accent === 'yellow';
 
+        // Подсвечиваем только текущий статус (остальные — без заливки).
         const circleClass = isCurrent
-          ? yellow
+          ? step.key === 'handover' && yellow
             ? 'border-black bg-[#E6EDA5] text-black shadow-[3px_3px_0_0_#000]'
-            : 'bg-primary text-black shadow-[3px_3px_0_0_#000]'
-          : isCompleted
-            ? yellow
-              ? 'border-black bg-[#E6EDA5]/80 text-black'
-              : 'bg-primary/20 text-black'
-            : 'bg-white text-neutral-400';
+            : step.key === 'in_progress' && yellow
+              ? 'border-black bg-[#FDE047] text-black shadow-[3px_3px_0_0_#000]'
+              : 'bg-primary text-black shadow-[3px_3px_0_0_#000]'
+          : 'bg-white text-neutral-400';
 
         return (
           <div key={step.key} className="flex flex-1 items-start last:flex-none">
@@ -56,20 +55,12 @@ export default function StatusTracker({ status }: StatusTrackerProps) {
               </div>
               <span
                 className={`mt-2 text-center text-[11px] font-black uppercase tracking-wide ${
-                  isCompleted ? 'text-black' : 'text-neutral-400'
+                  isCurrent ? 'text-black' : 'text-neutral-400'
                 }`}
               >
                 {step.label}
               </span>
             </div>
-
-            {idx < steps.length - 1 && (
-              <div
-                className={`mt-5 h-1 flex-1 border-y border-black ${
-                  idx < currentStep ? (idx === 0 ? 'bg-[#E6EDA5]' : 'bg-primary') : 'bg-neutral-200'
-                }`}
-              />
-            )}
           </div>
         );
       })}

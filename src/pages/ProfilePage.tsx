@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useStringingOrders } from '../context/StringingOrdersContext';
 import StatusTracker from '../components/StatusTracker';
-import type { Product, ProductCategory, ProductCondition, ProductFit, UserContact, UserContactPlatform } from '../types';
+import type { Product, ProductCategory, ProductCondition, ProductFit, StringingOrder, UserContact, UserContactPlatform } from '../types';
 import {
   categoryHasFitField,
   categoryHasSizeField,
@@ -13,12 +13,13 @@ import {
   SIZE_OPTIONS_BY_CATEGORY,
 } from '../utils/productCategoryFields';
 import { buildContactHref, CONTACT_PLATFORM_LABEL } from '../utils/contactLinks';
-import { ClipboardList, LogOut, Mail, Phone, Plus, ShoppingBag, ShoppingCart, SquarePen, Trash2, X } from 'lucide-react';
+import { ClipboardList, LogOut, Mail, Phone, Plus, Shield, ShoppingBag, ShoppingCart, SquarePen, Trash2, X } from 'lucide-react';
 import { useProfileListings } from '../context/ProfileListingsContext';
+import { productService } from '../services/api';
 
-type ProfileTab = 'listings' | 'cart' | 'orders' | 'edit';
+type ProfileTab = 'listings' | 'cart' | 'orders' | 'edit' | 'admin';
 
-type ProfileLocationState = { editListingId?: number };
+type ProfileLocationState = { editListingId?: number; editProduct?: Product };
 
 type ProfileNavItem = {
   id: ProfileTab;
@@ -163,7 +164,7 @@ const getContactButtonClass = (platform: UserContactPlatform): string => {
 };
 
 const isProfileTab = (value: string | null): value is ProfileTab =>
-  value === 'listings' || value === 'cart' || value === 'orders' || value === 'edit';
+  value === 'listings' || value === 'cart' || value === 'orders' || value === 'edit' || value === 'admin';
 
 function ProfileEmptyState({
   title,
@@ -274,7 +275,7 @@ export default function ProfilePage() {
   const { user, isAuthenticated, logout, updateProfile } = useAuth();
   const { items: cartItems, count: cartCount, removeFromCart } = useCart();
   const { listings: profileListings, addListing, updateListing, deleteListing } = useProfileListings();
-  const { orders: stringingOrdersAll } = useStringingOrders();
+  const { orders: stringingOrdersAll, updateStatus } = useStringingOrders();
   const myStringingOrders = user ? stringingOrdersAll.filter(o => o.clientUserId === user.id) : [];
   const navigate = useNavigate();
   const location = useLocation();
@@ -286,6 +287,8 @@ export default function ProfilePage() {
   const [listingFormOpen, setListingFormOpen] = useState(false);
   const [listingEditingId, setListingEditingId] = useState<number | null>(null);
   const [listingContactError, setListingContactError] = useState('');
+  const [adminUpdatingOrderId, setAdminUpdatingOrderId] = useState<number | null>(null);
+  const [adminError, setAdminError] = useState<string>('');
   const [listingForm, setListingForm] = useState<ListingFormState>(initialListingForm);
   const [editProfileForm, setEditProfileForm] = useState<EditProfileFormState>({
     name: '',
@@ -322,11 +325,14 @@ export default function ProfilePage() {
   }, [searchParams]);
 
   const editQueryParam = searchParams.get('edit');
+  const canSeeAdminPanel = user?.role === 'admin' || user?.role === 'moderator';
+  const isAdmin = user?.role === 'admin';
 
   useLayoutEffect(() => {
     if (!isAuthenticated || !user) return;
 
     const fromState = (location.state as ProfileLocationState | null)?.editListingId;
+    const fromProduct = (location.state as ProfileLocationState | null)?.editProduct;
     const parsedQuery = editQueryParam ? Number.parseInt(editQueryParam, 10) : NaN;
     let id =
       Number.isFinite(parsedQuery) ? parsedQuery
@@ -344,23 +350,53 @@ export default function ProfilePage() {
 
     if (!Number.isFinite(id)) return;
 
-    const listing = profileListings.find(l => l.id === id);
-    if (!listing) return;
+    const openEditForListing = (listing: Product) => {
+      const userHasContact =
+        Boolean(user.phone?.trim()) || user.contacts.some(c => c.value.trim().length > 0);
+      // Админу разрешаем редактировать любые товары, независимо от наличия контактов.
+      const canOpenEdit = isAdmin || userHasContact || listingHasSellerSnapshot(listing);
+      if (!canOpenEdit) {
+        setListingContactError(
+          'Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы редактировать объявление.',
+        );
+        return;
+      }
 
-    const userHasContact =
-      Boolean(user.phone?.trim()) || user.contacts.some(c => c.value.trim().length > 0);
-    const canOpenEdit = userHasContact || listingHasSellerSnapshot(listing);
-    if (!canOpenEdit) {
-      setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы редактировать объявление.');
+      setListingContactError('');
+      setListingForm(productToForm(listing));
+      setListingEditingId(id);
+      setListingFormOpen(true);
+      setActiveTab('listings');
+    };
+
+    const local = profileListings.find(l => l.id === id);
+    if (local) {
+      openEditForListing(local);
       return;
     }
 
-    setListingContactError('');
-    setListingForm(productToForm(listing));
-    setListingEditingId(id);
-    setListingFormOpen(true);
-    setActiveTab('listings');
-  }, [isAuthenticated, user, location.state, editQueryParam, profileListings]);
+    // Если товар передан из редактируемой страницы (через navigate state) — открываем сразу.
+    if (isAdmin && fromProduct && fromProduct.id === id) {
+      openEditForListing(fromProduct);
+      return;
+    }
+
+    if (isAdmin) {
+      let cancelled = false;
+      void (async () => {
+        try {
+          const res = await productService.getById(id);
+          if (cancelled) return;
+          openEditForListing(res.data as Product);
+        } catch {
+          // Если товар не найден или нет прав — просто не открываем форму.
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }
+  }, [isAuthenticated, user, location.state, editQueryParam, profileListings, isAdmin]);
 
   useEffect(() => {
     if (!listingFormOpen) return;
@@ -391,6 +427,7 @@ export default function ProfilePage() {
     logout();
     navigate('/');
   };
+  const adminTab: ProfileNavItem = { id: 'admin', label: 'Админ панель', icon: Shield };
 
   const handleTabChange = (tab: ProfileTab) => {
     setActiveTab(tab);
@@ -401,7 +438,7 @@ export default function ProfilePage() {
     Boolean(user.phone?.trim()) || user.contacts.some(contact => contact.value.trim().length > 0);
 
   const handleOpenListingForm = () => {
-    if (!hasAnyContactData) {
+    if (!isAdmin && !hasAnyContactData) {
       setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы разместить объявление.');
       return;
     }
@@ -414,7 +451,7 @@ export default function ProfilePage() {
   };
 
   const handleEditListing = (product: Product) => {
-    if (!hasAnyContactData && !listingHasSellerSnapshot(product)) {
+    if (!isAdmin && !hasAnyContactData && !listingHasSellerSnapshot(product)) {
       setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы редактировать объявление.');
       return;
     }
@@ -522,14 +559,16 @@ export default function ProfilePage() {
     });
   };
 
-  const handleCreateListing = (event: FormEvent) => {
+  const handleCreateListing = async (event: FormEvent) => {
     event.preventDefault();
 
     const existing =
       listingEditingId !== null ? profileListings.find(l => l.id === listingEditingId) : undefined;
-    const canSave =
-      hasAnyContactData ||
-      (listingEditingId !== null && existing !== undefined && listingHasSellerSnapshot(existing));
+    // Для админа редактирование/создание должно работать независимо от контактов в профиле.
+    const canSave = isAdmin
+      ? true
+      : hasAnyContactData ||
+        (listingEditingId !== null && existing !== undefined && listingHasSellerSnapshot(existing));
 
     if (!canSave) {
       setListingContactError('Добавьте телефон или хотя бы один дополнительный контакт в профиле, чтобы разместить объявление.');
@@ -571,15 +610,43 @@ export default function ProfilePage() {
       sellerContacts: contactsSnap && contactsSnap.length > 0 ? contactsSnap : undefined,
     };
 
-    if (listingEditingId !== null) {
-      updateListing(newListing);
-    } else {
-      addListing(newListing);
+    try {
+      if (listingEditingId !== null) {
+        if (isAdmin) {
+          const { id: _omitId, ...payload } = newListing;
+          await productService.update(listingEditingId, payload);
+        } else {
+          updateListing(newListing);
+        }
+      } else {
+        if (isAdmin) {
+          const { id: _omitId, ...payload } = newListing;
+          await productService.create(payload);
+        } else {
+          addListing(newListing);
+        }
+      }
+    } catch {
+      if (isAdmin) {
+        setListingContactError('Не удалось сохранить изменения на сервере.');
+      } else {
+        setListingContactError('Не удалось сохранить изменения.');
+      }
+      return;
     }
+    const savedId = listingEditingId;
+
     setListingForm(initialListingForm);
     setListingEditingId(null);
     setListingFormOpen(false);
     stripEditFromUrl();
+
+    // Чтобы изменения точно появились "на сайте": после сохранения админа перекидываем на барахолку.
+    if (isAdmin && savedId !== null) {
+      navigate(`/market/listing/${savedId}`);
+    } else if (isAdmin) {
+      navigate('/market');
+    }
   };
 
   const handleDeleteListing = (id: number) => {
@@ -597,7 +664,7 @@ export default function ProfilePage() {
     });
   };
 
-  const handleProfileSave = (event: FormEvent) => {
+  const handleProfileSave = async (event: FormEvent) => {
     event.preventDefault();
 
     const contactsSaved = normalizeContactsForEdit(
@@ -607,7 +674,7 @@ export default function ProfilePage() {
       })),
     ).filter(contact => contact.value.length > 0);
 
-    updateProfile({
+    await updateProfile({
       name: editProfileForm.name.trim(),
       email: editProfileForm.email.trim(),
       phone: editProfileForm.phone.trim(),
@@ -642,12 +709,14 @@ export default function ProfilePage() {
       {listingContactError ? (
         <div className="mb-6 border-2 border-black bg-amber-50 p-4 text-sm sketch-shadow-sm">
           <p className="font-semibold text-neutral-900">{listingContactError}</p>
-          <Link
-            to="/profile?tab=edit"
-            className="mt-2 inline-block font-bold text-primary-dark underline decoration-2 underline-offset-2"
-          >
-            Указать контакты в профиле
-          </Link>
+          {!isAdmin ? (
+            <Link
+              to="/profile?tab=edit"
+              className="mt-2 inline-block font-bold text-primary-dark underline decoration-2 underline-offset-2"
+            >
+              Указать контакты в профиле
+            </Link>
+          ) : null}
         </div>
       ) : null}
 
@@ -1040,6 +1109,142 @@ export default function ProfilePage() {
       );
     }
 
+    if (activeTab === 'admin') {
+      const role = user.role;
+      const isAdmin = role === 'admin';
+      const isModerator = role === 'moderator';
+
+      if (!isAdmin && !isModerator) {
+        return (
+          <section>
+            <div className="mb-5 border-b-2 border-black pb-4">
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Админ панель</h2>
+            </div>
+            <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
+              У вас нет прав для доступа к этой секции.
+            </p>
+          </section>
+        );
+      }
+
+      const canSetHandover = isAdmin || isModerator;
+      const canSetInProgress = isAdmin || isModerator;
+      const canSetReady = isAdmin || isModerator;
+
+      const sortedAllOrders = [...stringingOrdersAll].sort((a, b) => b.id - a.id);
+
+      const setStatusForOrder = async (orderId: number, nextStatus: StringingOrder['status']) => {
+        if (adminUpdatingOrderId === orderId) return;
+        try {
+          setAdminError('');
+          setAdminUpdatingOrderId(orderId);
+          await updateStatus(orderId, nextStatus);
+        } catch {
+          setAdminError('Не удалось обновить статус. Попробуйте ещё раз.');
+        } finally {
+          setAdminUpdatingOrderId(null);
+        }
+      };
+
+      return (
+        <section>
+          <div className="mb-5 border-b-2 border-black pb-4">
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Админ панель</h2>
+            <p className="mt-2 text-sm text-neutral-600">
+              Роль: <span className="font-bold text-neutral-900">{role ?? '—'}</span>
+            </p>
+          </div>
+
+          {adminError ? (
+            <div className="mb-6 border-2 border-black bg-amber-50 p-4 text-sm sketch-shadow-sm">
+              <p className="font-semibold text-neutral-900">{adminError}</p>
+            </div>
+          ) : null}
+
+          <div className="mb-4 flex items-center justify-between gap-3 border-b border-black/15 pb-3">
+            <h3 className="text-xl font-black">Перетяжки: управление статусами</h3>
+            <span className="text-sm text-neutral-600">
+              Заказов: <span className="font-bold text-neutral-900">{sortedAllOrders.length}</span>
+            </span>
+          </div>
+
+          {sortedAllOrders.length === 0 ? (
+            <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
+              Пока нет заказов.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {sortedAllOrders.map(order => (
+                <article key={order.id} className="border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-black uppercase tracking-wide text-neutral-500">
+                        Заказ #{order.id}
+                      </p>
+                      <h4 className="mt-1 font-black text-base text-gray-900 sm:text-lg">{order.racketModel}</h4>
+                      <p className="mt-1 text-sm text-neutral-600">
+                        {order.clientName ? `Клиент: ${order.clientName}` : 'Клиент'} • {order.stringType} •{' '}
+                        {order.tension} кг • {order.createdAt}
+                        {order.totalLei != null ? ` • ${order.totalLei} lei` : ''}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 sm:pt-1">
+                      <p className="text-[10px] font-black uppercase tracking-wide text-neutral-500">Статус</p>
+                      <StatusTracker status={order.status} />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {canSetHandover ? (
+                      <button
+                        type="button"
+                        disabled={!canSetHandover || adminUpdatingOrderId === order.id}
+                        onClick={() => void setStatusForOrder(order.id, 'handover')}
+                        className={
+                          order.status === 'handover'
+                            ? 'border-2 border-black bg-[#E6EDA5] px-3 py-2 text-xs font-black uppercase tracking-wide text-gray-900 transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45'
+                            : 'border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-wide text-gray-900 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-45'
+                        }
+                      >
+                        В передаче
+                      </button>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      disabled={!canSetInProgress || adminUpdatingOrderId === order.id}
+                      onClick={() => void setStatusForOrder(order.id, 'in_progress')}
+                      className={
+                        order.status === 'in_progress'
+                          ? 'border-2 border-black bg-[#FDE047] px-3 py-2 text-xs font-black uppercase tracking-wide text-gray-900 transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45'
+                          : 'border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-wide text-gray-900 transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-45'
+                      }
+                    >
+                      В работе
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={!canSetReady || adminUpdatingOrderId === order.id}
+                      onClick={() => void setStatusForOrder(order.id, 'ready')}
+                      className={
+                        order.status === 'ready'
+                          ? 'border-2 border-black bg-primary px-3 py-2 text-xs font-black uppercase tracking-wide text-black transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-45'
+                          : 'border-2 border-black bg-white px-3 py-2 text-xs font-black uppercase tracking-wide text-black transition-colors hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-45'
+                      }
+                    >
+                      Готово
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+        </section>
+      );
+    }
+
     return (
       <section>
         <div className="mb-5 border-b-2 border-black pb-4">
@@ -1245,7 +1450,7 @@ export default function ProfilePage() {
               </p>
 
               <nav className="space-y-2">
-                {profileTabs.map(tab => {
+                {(canSeeAdminPanel ? [...profileTabs, adminTab] : profileTabs).map(tab => {
                   const Icon = tab.icon;
                   const active = activeTab === tab.id;
 

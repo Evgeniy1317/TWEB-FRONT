@@ -20,14 +20,19 @@ export default function LoginPage() {
   const [emailShowValidation, setEmailShowValidation] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const { login, loginTest } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    login(email, password);
+    await login(email, password);
     navigate(getPostAuthRedirect(location.state));
+  };
+
+  const handleLoginTest = async (role: 'admin' | 'moderator' | 'user') => {
+    await loginTest(role);
+    navigate('/profile');
   };
 
   const handleGoogle = () => {
@@ -103,6 +108,30 @@ export default function LoginPage() {
           <LogIn size={17} />
           Войти
         </button>
+
+        <div className="mt-3 grid grid-cols-1 gap-2">
+          <button
+            type="button"
+            onClick={() => void handleLoginTest('user')}
+            className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
+          >
+            Обычный пользователь
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleLoginTest('moderator')}
+            className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
+          >
+            Модератор
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleLoginTest('admin')}
+            className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
+          >
+            Админ
+          </button>
+        </div>
       </form>
 
       <div className="relative my-4 md:my-5">

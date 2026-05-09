@@ -10,6 +10,7 @@ import { products } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { useProfileListings } from '../context/ProfileListingsContext';
 import { useCart } from '../context/CartContext';
+import { productService } from '../services/api';
 import type { Product, ProductFit } from '../types';
 import { categoryHasFitField, normalizeProductFit } from '../utils/productCategoryFields';
 import { publicUrl } from '../lib/publicUrl';
@@ -115,9 +116,62 @@ export default function MarketPage() {
   const [filterSize, setFilterSize] = useState('');
   const [filterFit, setFilterFit] = useState<ProductFit | ''>('');
 
-  const shuffledProducts = useMemo(
-    () => shuffle([...products, ...profileListings]),
-    [profileListings],
+  const [apiProducts, setApiProducts] = useState<Product[]>([]);
+  const DELETED_PRODUCTS_KEY = 'smash_deleted_products_v1';
+  const [deletedProductIds, setDeletedProductIds] = useState<number[]>(() => {
+    try {
+      const raw = localStorage.getItem(DELETED_PRODUCTS_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.map((x: unknown) => Number(x)).filter((n: number) => Number.isFinite(n));
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await productService.getAll();
+        if (cancelled) return;
+        setApiProducts(res.data);
+      } catch {
+        // Если API недоступен — оставляем мок-данные, чтобы интерфейс не ломался.
+        if (cancelled) return;
+        setApiProducts([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    // На случай, если удаление произошло и мы уже на /market
+    try {
+      const raw = localStorage.getItem(DELETED_PRODUCTS_KEY);
+      if (!raw) {
+        setDeletedProductIds([]);
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      setDeletedProductIds(parsed.map((x: unknown) => Number(x)).filter((n: number) => Number.isFinite(n)));
+    } catch {
+      setDeletedProductIds([]);
+    }
+  }, []);
+
+  // Важно: не делаем `shuffle` после загрузки API, иначе первая карточка будет "прыгать"
+  // (замена товара через ~2 секунды, когда `apiProducts` перестаёт быть пустым).
+  const displayProducts = useMemo(
+    () =>
+      [...(apiProducts.length ? apiProducts : products), ...profileListings].filter(
+        p => !deletedProductIds.includes(p.id),
+      ),
+    [apiProducts, profileListings, deletedProductIds],
   );
 
   useEffect(() => {
@@ -147,8 +201,8 @@ export default function MarketPage() {
   const visibleListings = useMemo(() => {
     let list =
       selectedRibbonId === 'all'
-        ? shuffledProducts
-        : shuffledProducts.filter(p => p.category === selectedRibbonId);
+        ? displayProducts
+        : displayProducts.filter(p => p.category === selectedRibbonId);
     const q = search.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -195,7 +249,7 @@ export default function MarketPage() {
     }
     return sorted;
   }, [
-    shuffledProducts,
+    displayProducts,
     search,
     selectedRibbonId,
     filterPriceMin,

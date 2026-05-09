@@ -164,9 +164,9 @@ export default function StringingPage() {
     setContactModalOpen(true);
   };
 
-  const confirmSaveOrderFromModal = () => {
+  const confirmSaveOrderFromModal = async () => {
     if (!user || !pendingOrderDraft) return;
-    addOrder({
+    await addOrder({
       ...pendingOrderDraft,
       clientUserId: user.id,
       clientName: user.name,
@@ -431,8 +431,8 @@ export default function StringingPage() {
             Видео, мастер и вопросы
           </h2>
           <div className="mx-auto w-full max-w-5xl overflow-hidden rounded-md border-2 border-black bg-white">
-            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-stretch">
-              <div className="relative border-b-2 border-black bg-black lg:border-b-0 lg:border-r-2">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:items-start">
+              <div className="relative border-b-2 border-black bg-white lg:border-b-0 lg:border-r-2">
                 <div className="relative mx-auto aspect-[9/16] w-full max-w-[min(100%,22rem)] lg:mx-0 lg:w-[22rem] lg:max-w-none">
                   <video
                     ref={videoRef}

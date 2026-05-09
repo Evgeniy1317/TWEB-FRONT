@@ -30,6 +30,8 @@ export interface Product {
   condition: ProductCondition;
   image: string;
   description: string;
+  /** Владелец объявления (должен приходить с API). Используется для "Мои объявления". */
+  ownerId?: number;
   /** Размер (EU для обуви, S–XL для одежды, диапазон для носков) */
   sizeLabel?: string;
   /** Дополнительные фото (не больше 6); главное фото — всегда `image` */
@@ -109,4 +111,6 @@ export interface AppUser {
   contacts: UserContact[];
   favorites: number[];
   avatar: string | null;
+  /** RBAC-роль пользователя. */
+  role?: 'admin' | 'moderator' | 'user';
 }

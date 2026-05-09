@@ -27,10 +27,10 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const displayName = [firstName, lastName].filter(Boolean).join(' ').trim();
-    login(email, password, displayName ? { name: displayName } : undefined);
+    await login(email, password, displayName ? { name: displayName } : undefined);
     navigate(getPostAuthRedirect(location.state));
   };
 

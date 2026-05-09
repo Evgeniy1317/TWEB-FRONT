@@ -1,10 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { StringingOrder } from '../types';
+import { stringingService } from '../services/api';
 import { stringingOrdersSeed } from '../data/mockData';
-
-function nextId(orders: StringingOrder[]): number {
-  return orders.reduce((m, o) => Math.max(m, o.id), 0) + 1;
-}
 
 interface StringingOrdersContextValue {
   orders: StringingOrder[];
@@ -15,48 +12,116 @@ interface StringingOrdersContextValue {
     totalLei: number;
     clientUserId: number;
     clientName: string;
-  }) => StringingOrder;
+  }) => Promise<StringingOrder>;
+  updateStatus: (id: number, status: StringingOrder['status']) => Promise<StringingOrder>;
+  refresh: () => Promise<void>;
 }
 
 const StringingOrdersContext = createContext<StringingOrdersContextValue | null>(null);
 
 export function StringingOrdersProvider({ children }: { children: ReactNode }) {
-  const [orders, setOrders] = useState<StringingOrder[]>(() => [...stringingOrdersSeed]);
+  const [orders, setOrders] = useState<StringingOrder[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await stringingService.getOrders();
+      setOrders(res.data);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // В реальных условиях всегда грузим с сервера.
+    void refresh().catch(() => {
+      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
+      setOrders(isTestMode ? [...stringingOrdersSeed] : []);
+    });
+  }, [refresh]);
 
   const addOrder = useCallback(
-    (input: {
+    async (input: {
       racketModel: string;
       tension: string;
       stringTypeLabel: string;
       totalLei: number;
       clientUserId: number;
       clientName: string;
-    }): StringingOrder => {
-      let out: StringingOrder | undefined;
-      setOrders(prev => {
-        const created: StringingOrder = {
-          id: nextId(prev),
-          racketModel: input.racketModel.trim(),
-          tension: input.tension.trim(),
-          stringType: input.stringTypeLabel,
-          status: 'handover',
-          createdAt: new Date().toISOString().slice(0, 10),
-          clientUserId: input.clientUserId,
-          clientName: input.clientName,
-          totalLei: input.totalLei,
-        };
-        out = created;
-        return [...prev, created];
+    }) => {
+      // В тест-режиме добавление делаем локально, чтобы можно было смотреть UI без БД.
+      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
+      if (isTestMode) {
+        let created: StringingOrder | undefined;
+        setOrders(prev => {
+          const nextId = prev.length ? Math.max(...prev.map(o => o.id)) + 1 : 1;
+          created = {
+            id: nextId,
+            racketModel: input.racketModel.trim(),
+            tension: input.tension.trim(),
+            stringType: input.stringTypeLabel,
+            status: 'handover',
+            createdAt: new Date().toISOString().slice(0, 10),
+            clientUserId: input.clientUserId,
+            clientName: input.clientName,
+            totalLei: input.totalLei,
+          };
+          return created ? [created, ...prev] : prev;
+        });
+        // setState async, но для UI достаточно самого created.
+        if (!created) throw new Error('Test addOrder failed');
+        return Promise.resolve(created);
+      }
+
+      const created = await stringingService.createOrder({
+        racketModel: input.racketModel.trim(),
+        tension: input.tension.trim(),
+        stringType: input.stringTypeLabel,
+        totalLei: input.totalLei,
+        clientUserId: input.clientUserId,
+        clientName: input.clientName,
       });
-      if (!out) throw new Error('addOrder failed');
-      return out;
+      await refresh();
+      return created.data;
     },
-    []
+    [refresh],
   );
 
-  const value = useMemo(() => ({ orders, addOrder }), [orders, addOrder]);
+  const updateStatus = useCallback(
+    async (id: number, status: StringingOrder['status']) => {
+      // В тест-режиме смена статуса делаем локально.
+      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
+      if (isTestMode) {
+        let updated: StringingOrder | undefined;
+        setOrders(prev => {
+          updated = prev.find(o => o.id === id)
+            ? { ...prev.find(o => o.id === id)!, status }
+            : undefined;
+          if (!updated) return prev;
+          return prev.map(o => (o.id === id ? updated! : o));
+        });
+        if (!updated) throw new Error('Test updateStatus: order not found');
+        return Promise.resolve(updated);
+      }
 
-  return <StringingOrdersContext.Provider value={value}>{children}</StringingOrdersContext.Provider>;
+      const updated = await stringingService.updateStatus(id, status);
+      await refresh();
+      return updated.data;
+    },
+    [refresh],
+  );
+
+  const value = useMemo(
+    () => ({ orders, addOrder, updateStatus, refresh }),
+    [orders, addOrder, updateStatus, refresh],
+  );
+
+  return (
+    <StringingOrdersContext.Provider value={value}>
+      {children}
+    </StringingOrdersContext.Provider>
+  );
 }
 
 export function useStringingOrders() {
