@@ -325,7 +325,7 @@ export default function ProfilePage() {
   }, [searchParams]);
 
   const editQueryParam = searchParams.get('edit');
-  const canSeeAdminPanel = user?.role === 'admin' || user?.role === 'moderator';
+  const canSeeAdminPanel = user?.role === 'admin' || user?.role === 'manager';
   const isAdmin = user?.role === 'admin';
 
   useLayoutEffect(() => {
@@ -1112,9 +1112,9 @@ export default function ProfilePage() {
     if (activeTab === 'admin') {
       const role = user.role;
       const isAdmin = role === 'admin';
-      const isModerator = role === 'moderator';
+      const isManager = role === 'manager';
 
-      if (!isAdmin && !isModerator) {
+      if (!isAdmin && !isManager) {
         return (
           <section>
             <div className="mb-5 border-b-2 border-black pb-4">
@@ -1127,9 +1127,9 @@ export default function ProfilePage() {
         );
       }
 
-      const canSetHandover = isAdmin || isModerator;
-      const canSetInProgress = isAdmin || isModerator;
-      const canSetReady = isAdmin || isModerator;
+      const canSetHandover = isAdmin || isManager;
+      const canSetInProgress = isAdmin || isManager;
+      const canSetReady = isAdmin || isManager;
 
       const sortedAllOrders = [...stringingOrdersAll].sort((a, b) => b.id - a.id);
 

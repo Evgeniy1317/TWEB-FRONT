@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { AuthSplitCardShell } from '../components/auth/AuthSplitCardShell';
-import { GoogleIcon } from '../components/auth/GoogleIcon';
 import {
   authInputClass,
   getAuthEmailAriaInvalid,
@@ -16,27 +16,28 @@ const LOGIN_IMAGE = publicUrl('media/images/original-54780b5d8c3bd316e079f55fc52
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
-  /** Красный/зелёный только после ухода с поля; при фокусе снова нейтрально */
   const [emailShowValidation, setEmailShowValidation] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, loginTest } = useAuth();
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    await login(email, password);
-    navigate(getPostAuthRedirect(location.state));
-  };
+    setError('');
+    setIsSubmitting(true);
 
-  const handleLoginTest = async (role: 'admin' | 'moderator' | 'user') => {
-    await loginTest(role);
-    navigate('/profile');
-  };
-
-  const handleGoogle = () => {
-    window.alert('Вход через Google будет подключён позже.');
+    try {
+      await login(email, password);
+      navigate(getPostAuthRedirect(location.state));
+    } catch (err) {
+      setError(getLoginErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -67,6 +68,7 @@ export default function LoginPage() {
             aria-invalid={getAuthEmailAriaInvalid(email, emailShowValidation)}
           />
         </div>
+
         <div>
           <div className="mb-1 flex items-center justify-between gap-2">
             <label htmlFor="login-password" className="block text-xs font-medium text-white/85">
@@ -103,54 +105,19 @@ export default function LoginPage() {
 
         <button
           type="submit"
-          className="mt-0.5 flex w-full items-center justify-center gap-2 rounded-none bg-primary py-2.5 text-sm font-bold text-dark transition-colors hover:bg-primary-dark"
+          disabled={isSubmitting}
+          className="mt-0.5 flex w-full items-center justify-center gap-2 rounded-none bg-primary py-2.5 text-sm font-bold text-dark transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-65"
         >
           <LogIn size={17} />
-          Войти
+          {isSubmitting ? 'Входим...' : 'Войти'}
         </button>
 
-        <div className="mt-3 grid grid-cols-1 gap-2">
-          <button
-            type="button"
-            onClick={() => void handleLoginTest('user')}
-            className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
-          >
-            Обычный пользователь
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleLoginTest('moderator')}
-            className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
-          >
-            Модератор
-          </button>
-          <button
-            type="button"
-            onClick={() => void handleLoginTest('admin')}
-            className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
-          >
-            Админ
-          </button>
-        </div>
+        {error && (
+          <p className="text-center text-xs font-medium text-red-300" role="alert">
+            {error}
+          </p>
+        )}
       </form>
-
-      <div className="relative my-4 md:my-5">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/12" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase tracking-wider text-white/35">
-          <span className="bg-[#111] px-3">или</span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleGoogle}
-        className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2.5 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
-      >
-        <GoogleIcon className="h-5 w-5 shrink-0" />
-        Войти через Google
-      </button>
 
       <p className="mt-4 text-center text-xs text-white/45 sm:text-sm">
         Нет аккаунта?{' '}
@@ -160,4 +127,14 @@ export default function LoginPage() {
       </p>
     </AuthSplitCardShell>
   );
+}
+
+function getLoginErrorMessage(err: unknown) {
+  if (axios.isAxiosError(err)) {
+    if (err.response?.status === 401) return 'Неверный email или пароль.';
+    if (err.response?.status) return `Ошибка входа: ${err.response.status}.`;
+    return 'Сервер недоступен или запрос заблокирован браузером.';
+  }
+
+  return 'Не удалось войти. Попробуйте еще раз.';
 }

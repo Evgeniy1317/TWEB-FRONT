@@ -2,7 +2,7 @@ import axios, { type InternalAxiosRequestConfig } from 'axios';
 import type { Product, StringingOrder, Court, Tournament } from '../types';
 import { products as mockProductsSeed } from '../data/mockData';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7237/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -55,7 +55,7 @@ export const productService = {
       writeProducts(next);
       return { data: updated };
     }
-    return api.patch<Product>(`/products/${id}`, data);
+    return api.put<Product>(`/products/${id}`, data);
   },
   delete: async (id: number): Promise<void> => {
     const isTestMode = localStorage.getItem('smash_test_mode') === '1';
@@ -109,7 +109,7 @@ export const stringingService = {
   createOrder: (data: Omit<StringingOrder, 'id' | 'status' | 'createdAt'>) =>
     api.post<StringingOrder>('/stringing', data),
   updateStatus: (id: number, status: StringingOrder['status']) =>
-    api.patch<StringingOrder>(`/stringing/${id}`, { status }),
+    api.put<StringingOrder>(`/stringing/${id}`, status),
 };
 
 export const courtService = {

@@ -112,5 +112,5 @@ export interface AppUser {
   favorites: number[];
   avatar: string | null;
   /** RBAC-роль пользователя. */
-  role?: 'admin' | 'moderator' | 'user';
+  role?: 'admin' | 'manager' | 'user';
 }
