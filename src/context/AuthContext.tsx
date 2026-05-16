@@ -43,7 +43,7 @@ interface AuthContextValue {
   user: AppUser | null;
   isAuthenticated: boolean;
   login: (email: string, password: string, overrides?: Partial<Pick<AppUser, 'name'>>) => Promise<boolean>;
-  loginTest: (role: 'admin' | 'moderator' | 'user') => Promise<boolean>;
+  loginTest: (role: 'admin' | 'manager' | 'user') => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Pick<AppUser, 'name' | 'email' | 'phone' | 'contacts'>) => Promise<void>;
 }
@@ -80,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string, overrides?: Partial<Pick<AppUser, 'name'>>) => {
     const credentials = { email: email.trim(), password };
+    localStorage.removeItem(TEST_MODE_KEY);
     const res = await authService.login(credentials);
 
     // Возможные форматы ответа (зависит от вашего API):
@@ -101,19 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
-  const loginTest = useCallback(async (role: 'admin' | 'moderator' | 'user') => {
+  const loginTest = useCallback(async (role: 'admin' | 'manager' | 'user') => {
     const name =
-      role === 'admin' ? 'Администратор (тест)' : role === 'moderator' ? 'Модератор (тест)' : 'Обычный пользователь (тест)';
+      role === 'admin' ? 'Администратор (тест)' : role === 'manager' ? 'Менеджер (тест)' : 'Обычный пользователь (тест)';
     const email =
       role === 'admin'
         ? 'admin@test.local'
-        : role === 'moderator'
-          ? 'moderator@test.local'
+        : role === 'manager'
+          ? 'manager@test.local'
           : 'user@test.local';
 
     const next: AppUser = {
       ...mockUser,
-      id: role === 'admin' ? 1000 : role === 'moderator' ? 1001 : 1002,
+      id: role === 'admin' ? 1000 : role === 'manager' ? 1001 : 1002,
       email,
       name,
       contacts: [],
