@@ -1,9 +1,9 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, UserPlus } from 'lucide-react';
 import { AuthSplitCardShell } from '../components/auth/AuthSplitCardShell';
-import { GoogleIcon } from '../components/auth/GoogleIcon';
 import {
   authInputClass,
   getAuthEmailAriaInvalid,
@@ -23,19 +23,26 @@ export default function RegisterPage() {
   const [emailShowValidation, setEmailShowValidation] = useState(false);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { register } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const displayName = [firstName, lastName].filter(Boolean).join(' ').trim();
-    await login(email, password, displayName ? { name: displayName } : undefined);
-    navigate(getPostAuthRedirect(location.state));
-  };
+    setError('');
+    setIsSubmitting(true);
 
-  const handleGoogle = () => {
-    window.alert('Вход через Google будет подключён позже.');
+    try {
+      await register({ name: displayName, email, password });
+      navigate(getPostAuthRedirect(location.state));
+    } catch (err) {
+      setError(getRegisterErrorMessage(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -77,6 +84,7 @@ export default function RegisterPage() {
             />
           </div>
         </div>
+
         <div>
           <label htmlFor="reg-email" className="mb-0.5 block text-xs font-medium text-white/85">
             Email адрес
@@ -95,6 +103,7 @@ export default function RegisterPage() {
             aria-invalid={getAuthEmailAriaInvalid(email, emailShowValidation)}
           />
         </div>
+
         <div>
           <label htmlFor="reg-password" className="mb-0.5 block text-xs font-medium text-white/85">
             Пароль
@@ -123,30 +132,19 @@ export default function RegisterPage() {
 
         <button
           type="submit"
-          className="mt-0 flex w-full items-center justify-center gap-2 rounded-none bg-primary py-2 text-sm font-bold text-dark transition-colors hover:bg-primary-dark"
+          disabled={isSubmitting}
+          className="mt-0 flex w-full items-center justify-center gap-2 rounded-none bg-primary py-2 text-sm font-bold text-dark transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-65"
         >
           <UserPlus size={17} />
-          Зарегистрироваться
+          {isSubmitting ? 'Создаем...' : 'Зарегистрироваться'}
         </button>
+
+        {error && (
+          <p className="text-center text-xs font-medium text-red-300" role="alert">
+            {error}
+          </p>
+        )}
       </form>
-
-      <div className="relative my-3 md:my-3">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-white/12" />
-        </div>
-        <div className="relative flex justify-center text-[10px] uppercase tracking-wider text-white/35 sm:text-xs">
-          <span className="bg-[#111] px-2 sm:px-3">или</span>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleGoogle}
-        className="flex w-full items-center justify-center gap-2 rounded-none border border-white/22 bg-white py-2 text-sm font-semibold text-gray-800 transition-colors hover:bg-white/95"
-      >
-        <GoogleIcon className="h-5 w-5 shrink-0" />
-        Войти через Google
-      </button>
 
       <p className="mt-3 text-center text-xs text-white/45">
         Уже есть аккаунт?{' '}
@@ -156,4 +154,14 @@ export default function RegisterPage() {
       </p>
     </AuthSplitCardShell>
   );
+}
+
+function getRegisterErrorMessage(err: unknown) {
+  if (axios.isAxiosError(err)) {
+    if (err.response?.status === 400) return 'Не удалось создать аккаунт: проверьте данные или email.';
+    if (err.response?.status) return `Ошибка регистрации: ${err.response.status}.`;
+    return 'Сервер недоступен или запрос заблокирован браузером.';
+  }
+
+  return 'Не удалось зарегистрироваться. Попробуйте еще раз.';
 }

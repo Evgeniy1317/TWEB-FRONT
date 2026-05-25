@@ -39,10 +39,21 @@ function persistUser(user: AppUser | null) {
   }
 }
 
+function normalizeUser(user: AppUser): AppUser {
+  return {
+    ...user,
+    phone: user.phone ?? '',
+    contacts: Array.isArray(user.contacts) ? user.contacts : [],
+    favorites: Array.isArray(user.favorites) ? user.favorites : [],
+    avatar: user.avatar ?? null,
+  };
+}
+
 interface AuthContextValue {
   user: AppUser | null;
   isAuthenticated: boolean;
-  login: (email: string, password: string, overrides?: Partial<Pick<AppUser, 'name'>>) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (data: { name: string; email: string; password: string }) => Promise<boolean>;
   loginTest: (role: 'admin' | 'manager' | 'user') => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Pick<AppUser, 'name' | 'email' | 'phone' | 'contacts'>) => Promise<void>;
@@ -63,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const profile = await authService.getProfile();
         if (cancelled) return;
-        const next = profile.data as AppUser;
+        const next = normalizeUser(profile.data as AppUser);
         setUser(next);
         persistUser(next);
       } catch {
@@ -78,29 +89,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const login = useCallback(async (email: string, password: string, overrides?: Partial<Pick<AppUser, 'name'>>) => {
+  const login = useCallback(async (email: string, password: string) => {
     const credentials = { email: email.trim(), password };
     localStorage.removeItem(TEST_MODE_KEY);
     const res = await authService.login(credentials);
 
-    // Возможные форматы ответа (зависит от вашего API):
-    const token =
-      res.data?.token ?? res.data?.accessToken ?? res.data?.jwt ?? res.data?.data?.token ?? res.data?.data?.accessToken;
-    if (typeof token === 'string' && token.trim().length > 0) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    const token = res.data?.token;
+    const userFromApi = res.data?.user;
+    if (typeof token !== 'string' || token.trim().length === 0 || !userFromApi) {
+      throw new Error('Invalid auth response');
     }
 
-    const profile = await authService.getProfile();
-    const nextFromApi = profile.data as AppUser;
-    const next: AppUser =
-      overrides?.name && overrides.name.trim().length > 0
-        ? { ...nextFromApi, name: overrides.name.trim() }
-        : nextFromApi;
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    const next = normalizeUser(userFromApi as AppUser);
 
     setUser(next);
     persistUser(next);
     return true;
   }, []);
+
+  const register = useCallback(
+    async (data: { name: string; email: string; password: string }) => {
+      localStorage.removeItem(TEST_MODE_KEY);
+      await authService.register({
+        name: data.name.trim(),
+        email: data.email.trim(),
+        password: data.password,
+      });
+
+      return login(data.email, data.password);
+    },
+    [login],
+  );
 
   const loginTest = useCallback(async (role: 'admin' | 'manager' | 'user') => {
     const name =
@@ -159,11 +179,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isAuthenticated: user !== null,
       login,
+      register,
       loginTest,
       logout,
       updateProfile,
     }),
-    [user, login, loginTest, logout, updateProfile],
+    [user, login, register, loginTest, logout, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
