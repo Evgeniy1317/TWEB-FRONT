@@ -1,4 +1,4 @@
-import { Truck, Wrench, CheckCircle2, type LucideIcon } from 'lucide-react';
+import { Truck, Wrench, CheckCircle2, XCircle, type LucideIcon } from 'lucide-react';
 import type { StringingOrderStatus } from '../types';
 
 interface Step {
@@ -6,7 +6,7 @@ interface Step {
   label: string;
   icon: LucideIcon;
   /** Жёлтый акцент для шага «передача» */
-  accent?: 'yellow' | 'default';
+  accent?: 'yellow' | 'default' | 'danger';
 }
 
 const steps: Step[] = [
@@ -14,12 +14,14 @@ const steps: Step[] = [
   // "В работе" поярче (отдельный цвет задаём в circleClass ниже)
   { key: 'in_progress', label: 'В работе', icon: Wrench, accent: 'yellow' },
   { key: 'ready', label: 'Готово', icon: CheckCircle2, accent: 'default' },
+  { key: 'cancelled', label: 'Отменён', icon: XCircle, accent: 'danger' },
 ];
 
 const statusIndex: Record<StringingOrderStatus, number> = {
   handover: 0,
   in_progress: 1,
   ready: 2,
+  cancelled: 3,
 };
 
 interface StatusTrackerProps {
@@ -35,6 +37,7 @@ export default function StatusTracker({ status }: StatusTrackerProps) {
         const isCurrent = idx === currentStep;
         const Icon = step.icon;
         const yellow = step.accent === 'yellow';
+        const danger = step.accent === 'danger';
 
         // Подсвечиваем только текущий статус (остальные — без заливки).
         const circleClass = isCurrent
@@ -42,7 +45,9 @@ export default function StatusTracker({ status }: StatusTrackerProps) {
             ? 'border-black bg-[#E6EDA5] text-black shadow-[3px_3px_0_0_#000]'
             : step.key === 'in_progress' && yellow
               ? 'border-black bg-[#FDE047] text-black shadow-[3px_3px_0_0_#000]'
-              : 'bg-primary text-black shadow-[3px_3px_0_0_#000]'
+              : danger
+                ? 'border-black bg-red-100 text-red-700 shadow-[3px_3px_0_0_#000]'
+                : 'bg-primary text-black shadow-[3px_3px_0_0_#000]'
           : 'bg-white text-neutral-400';
 
         return (
