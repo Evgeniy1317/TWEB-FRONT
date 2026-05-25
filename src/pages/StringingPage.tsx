@@ -65,6 +65,7 @@ const STRINGING_STATUS_LABEL: Record<StringingOrderStatus, string> = {
   handover: 'В передаче',
   in_progress: 'Получена, в работе',
   ready: 'Готово',
+  cancelled: 'Отменён',
 };
 
 const STRINGING_FAQ = [
@@ -403,7 +404,9 @@ export default function StringingPage() {
                                   ? 'bg-[#E6EDA5] text-black'
                                   : order.status === 'ready'
                                     ? 'bg-primary/30 text-black'
-                                    : 'bg-neutral-100 text-black'
+                                    : order.status === 'cancelled'
+                                      ? 'bg-red-100 text-red-700'
+                                      : 'bg-neutral-100 text-black'
                               }`}
                             >
                               {STRINGING_STATUS_LABEL[order.status]}

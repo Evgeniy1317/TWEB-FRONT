@@ -17,7 +17,7 @@ export type ProductCondition = 'new' | 'used';
 /** Мужское / женское / универсальное — для категорий одежды, обуви и т.п. */
 export type ProductFit = 'mens' | 'womens' | 'unisex';
 /** Статусы перетяжки: передача ракетки → в работе → готово */
-export type StringingOrderStatus = 'handover' | 'in_progress' | 'ready';
+export type StringingOrderStatus = 'handover' | 'in_progress' | 'ready' | 'cancelled';
 
 /** @deprecated Используйте StringingOrderStatus для перетяжки */
 export type OrderStatus = StringingOrderStatus;
