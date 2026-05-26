@@ -2,9 +2,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { StringingOrder } from '../types';
 import { stringingService } from '../services/api';
 import { stringingOrdersSeed } from '../data/mockData';
+import { useAuth } from './AuthContext';
 
 interface StringingOrdersContextValue {
   orders: StringingOrder[];
+  loading: boolean;
   addOrder: (input: {
     racketModel: string;
     tension: string;
@@ -20,24 +22,38 @@ interface StringingOrdersContextValue {
 const StringingOrdersContext = createContext<StringingOrdersContextValue | null>(null);
 
 export function StringingOrdersProvider({ children }: { children: ReactNode }) {
+  const { user, isAuthenticated } = useAuth();
   const [orders, setOrders] = useState<StringingOrder[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const canManageOrders = user?.role === 'admin' || user?.role === 'manager';
 
   const refresh = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await stringingService.getOrders();
+      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
+      if (isTestMode) {
+        setOrders(canManageOrders ? [...stringingOrdersSeed] : stringingOrdersSeed.filter(order => order.clientUserId === user.id));
+        return;
+      }
+
+      const res = canManageOrders ? await stringingService.getOrders() : await stringingService.getMyOrders();
       setOrders(res.data);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canManageOrders, isAuthenticated, user]);
 
   useEffect(() => {
     // В реальных условиях всегда грузим с сервера.
     void refresh().catch(() => {
-      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
-      setOrders(isTestMode ? [...stringingOrdersSeed] : []);
+      setOrders([]);
+      setLoading(false);
     });
   }, [refresh]);
 
@@ -79,8 +95,6 @@ export function StringingOrdersProvider({ children }: { children: ReactNode }) {
         tension: input.tension.trim(),
         stringType: input.stringTypeLabel,
         totalLei: input.totalLei,
-        clientUserId: input.clientUserId,
-        clientName: input.clientName,
       });
       await refresh();
       return created.data;
@@ -113,8 +127,8 @@ export function StringingOrdersProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ orders, addOrder, updateStatus, refresh }),
-    [orders, addOrder, updateStatus, refresh],
+    () => ({ orders, loading, addOrder, updateStatus, refresh }),
+    [orders, loading, addOrder, updateStatus, refresh],
   );
 
   return (
