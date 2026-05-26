@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
+﻿import { useEffect, useLayoutEffect, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useStringingOrders } from '../context/StringingOrdersContext';
@@ -149,6 +150,29 @@ function listingHasSellerSnapshot(p: Product): boolean {
   );
 }
 
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (!axios.isAxiosError(err)) return fallback;
+
+  const data = err.response?.data;
+  if (typeof data === 'string' && data.trim()) return data;
+  if (data && typeof data === 'object') {
+    const title = 'title' in data && typeof data.title === 'string' ? data.title : '';
+    const errors =
+      'errors' in data && data.errors && typeof data.errors === 'object'
+        ? Object.values(data.errors)
+            .flatMap(value => (Array.isArray(value) ? value : [value]))
+            .filter((value): value is string => typeof value === 'string')
+        : [];
+    if (errors.length > 0) return errors.join(' ');
+    if (title) return title;
+  }
+
+  if (err.response?.status === 401) return 'Сессия истекла. Войдите заново и повторите действие.';
+  if (err.response?.status === 403) return 'У вас нет прав для этого действия.';
+  if (err.response?.status) return `${fallback} Код ошибки: ${err.response.status}.`;
+  return 'Сервер недоступен или запрос заблокирован браузером.';
+}
+
 const getContactPlatformLabel = (platform: UserContactPlatform): string =>
   CONTACT_PLATFORM_LABEL[platform] ?? 'Контакт';
 
@@ -274,8 +298,14 @@ function ProfileListingCard({
 export default function ProfilePage() {
   const { user, isAuthenticated, logout, updateProfile } = useAuth();
   const { items: cartItems, count: cartCount, removeFromCart } = useCart();
-  const { listings: profileListings, addListing, updateListing, deleteListing } = useProfileListings();
-  const { orders: stringingOrdersAll, updateStatus } = useStringingOrders();
+  const {
+    listings: profileListings,
+    loading: profileListingsLoading,
+    addListing,
+    updateListing,
+    deleteListing,
+  } = useProfileListings();
+  const { orders: stringingOrdersAll, loading: stringingOrdersLoading, updateStatus } = useStringingOrders();
   const myStringingOrders = user ? stringingOrdersAll.filter(o => o.clientUserId === user.id) : [];
   const navigate = useNavigate();
   const location = useLocation();
@@ -562,6 +592,18 @@ export default function ProfilePage() {
   const handleCreateListing = async (event: FormEvent) => {
     event.preventDefault();
 
+    const price = Number.parseInt(listingForm.price, 10);
+    if (!Number.isFinite(price) || price <= 0) {
+      setListingContactError('Укажите цену больше 0.');
+      return;
+    }
+
+    const image = listingForm.imagePreviews[0] ?? listingForm.image;
+    if (!image?.trim()) {
+      setListingContactError('Добавьте хотя бы одно фото PNG.');
+      return;
+    }
+
     const existing =
       listingEditingId !== null ? profileListings.find(l => l.id === listingEditingId) : undefined;
     // Для админа редактирование/создание должно работать независимо от контактов в профиле.
@@ -590,14 +632,12 @@ export default function ProfilePage() {
           ? existing.sellerContacts
           : undefined;
 
-    const listingId = listingEditingId ?? Date.now();
-    const newListing: Product = {
-      id: listingId,
+    const newListing: Omit<Product, 'id' | 'ownerId'> = {
       title: listingForm.title.trim(),
       category: listingForm.category,
       condition: listingForm.condition,
-      price: Number.parseInt(listingForm.price, 10),
-      image: listingForm.image,
+      price,
+      image,
       extraImages: listingForm.imagePreviews.slice(1, 8),
       description: listingForm.description.trim(),
       colorLabel: listingForm.colorLabel.trim() || undefined,
@@ -610,47 +650,36 @@ export default function ProfilePage() {
       sellerContacts: contactsSnap && contactsSnap.length > 0 ? contactsSnap : undefined,
     };
 
+    let savedId = listingEditingId;
     try {
       if (listingEditingId !== null) {
-        if (isAdmin) {
-          const { id: _omitId, ...payload } = newListing;
-          await productService.update(listingEditingId, payload);
-        } else {
-          updateListing(newListing);
-        }
+        const updated = await updateListing(listingEditingId, newListing);
+        savedId = updated.id;
       } else {
-        if (isAdmin) {
-          const { id: _omitId, ...payload } = newListing;
-          await productService.create(payload);
-        } else {
-          addListing(newListing);
-        }
+        const created = await addListing(newListing);
+        savedId = created.id;
       }
-    } catch {
-      if (isAdmin) {
-        setListingContactError('Не удалось сохранить изменения на сервере.');
-      } else {
-        setListingContactError('Не удалось сохранить изменения.');
-      }
+    } catch (err) {
+      setListingContactError(getApiErrorMessage(err, 'Не удалось сохранить объявление.'));
       return;
     }
-    const savedId = listingEditingId;
 
     setListingForm(initialListingForm);
     setListingEditingId(null);
     setListingFormOpen(false);
     stripEditFromUrl();
 
-    // Чтобы изменения точно появились "на сайте": после сохранения админа перекидываем на барахолку.
-    if (isAdmin && savedId !== null) {
+    if (savedId !== null) {
       navigate(`/market/listing/${savedId}`);
-    } else if (isAdmin) {
-      navigate('/market');
     }
   };
 
-  const handleDeleteListing = (id: number) => {
-    deleteListing(id);
+  const handleDeleteListing = async (id: number) => {
+    try {
+      await deleteListing(id);
+    } catch (err) {
+      setListingContactError(getApiErrorMessage(err, 'Не удалось удалить объявление.'));
+    }
   };
 
   const removeListingImage = (indexToRemove: number) => {
@@ -996,7 +1025,11 @@ export default function ProfilePage() {
       )}
 
       {!listingFormOpen &&
-        (profileListings.length === 0 ? (
+        (profileListingsLoading ? (
+          <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
+            Загружаем объявления...
+          </p>
+        ) : profileListings.length === 0 ? (
           <ProfileEmptyState
             title="Вы ещё не разместили ни одного объявления"
             description="Заполните форму и первое объявление сразу появится в вашем личном кабинете."
@@ -1082,7 +1115,11 @@ export default function ProfilePage() {
           </div>
 
           <div className="space-y-4">
-            {myStringingOrders.length === 0 ? (
+            {stringingOrdersLoading ? (
+              <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
+                Загружаем заказы...
+              </p>
+            ) : myStringingOrders.length === 0 ? (
               <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
                 Заказов перетяжки пока нет. Оформите заказ на странице{' '}
                 <Link to="/stringing" className="font-black text-black underline decoration-2 underline-offset-2">
@@ -1169,7 +1206,11 @@ export default function ProfilePage() {
             </span>
           </div>
 
-          {sortedAllOrders.length === 0 ? (
+          {stringingOrdersLoading ? (
+            <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
+              Загружаем заказы...
+            </p>
+          ) : sortedAllOrders.length === 0 ? (
             <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
               Пока нет заказов.
             </p>

@@ -8,39 +8,105 @@ import {
   type ReactNode,
 } from 'react';
 import type { Product } from '../types';
+import { productService } from '../services/api';
 import { loadProfileListings, saveProfileListings } from '../services/profileListings';
+import { useAuth } from './AuthContext';
+
+type ProductPayload = Omit<Product, 'id' | 'ownerId'>;
+
+function normalizeProductPayload(product: ProductPayload): ProductPayload {
+  return {
+    ...product,
+    title: product.title.trim(),
+    description: product.description.trim(),
+    image: product.image.trim(),
+    colorLabel: product.colorLabel?.trim() || undefined,
+    sizeLabel: product.sizeLabel?.trim() || undefined,
+    sellerPhone: product.sellerPhone?.trim() || undefined,
+    extraImages: product.extraImages?.map(image => image.trim()).filter(Boolean),
+    sellerContacts: product.sellerContacts
+      ?.map(contact => ({
+        platform: contact.platform,
+        value: contact.value.trim(),
+      }))
+      .filter(contact => contact.value.length > 0),
+  };
+}
 
 type ProfileListingsContextValue = {
   listings: Product[];
-  addListing: (product: Product) => void;
-  updateListing: (product: Product) => void;
-  deleteListing: (id: number) => void;
+  allListings: Product[];
+  loading: boolean;
+  refresh: () => Promise<void>;
+  addListing: (product: ProductPayload) => Promise<Product>;
+  updateListing: (id: number, product: ProductPayload) => Promise<Product>;
+  deleteListing: (id: number) => Promise<void>;
 };
 
 const ProfileListingsContext = createContext<ProfileListingsContextValue | null>(null);
 
 export function ProfileListingsProvider({ children }: { children: ReactNode }) {
-  const [listings, setListings] = useState<Product[]>(() => loadProfileListings());
+  const { user } = useAuth();
+  const [allListings, setAllListings] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await productService.getAll();
+      setAllListings(res.data);
+    } catch {
+      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
+      setAllListings(isTestMode ? loadProfileListings() : []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    saveProfileListings(listings);
+    void refresh();
+  }, [refresh, user?.id, user?.role]);
+
+  const listings = useMemo(() => {
+    if (!user) return [];
+    if (user.role === 'admin') return allListings;
+    return allListings.filter(product => product.ownerId === user.id);
+  }, [allListings, user]);
+
+  const addListing = useCallback(
+    async (product: ProductPayload) => {
+      const res = await productService.create(normalizeProductPayload(product));
+      await refresh();
+      return res.data;
+    },
+    [refresh],
+  );
+
+  const updateListing = useCallback(
+    async (id: number, product: ProductPayload) => {
+      const res = await productService.update(id, normalizeProductPayload(product));
+      await refresh();
+      return res.data;
+    },
+    [refresh],
+  );
+
+  const deleteListing = useCallback(
+    async (id: number) => {
+      await productService.delete(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  useEffect(() => {
+    const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
+    if (isTestMode) saveProfileListings(listings);
   }, [listings]);
 
-  const addListing = useCallback((product: Product) => {
-    setListings(prev => [product, ...prev]);
-  }, []);
-
-  const updateListing = useCallback((product: Product) => {
-    setListings(prev => prev.map(p => (p.id === product.id ? product : p)));
-  }, []);
-
-  const deleteListing = useCallback((id: number) => {
-    setListings(prev => prev.filter(p => p.id !== id));
-  }, []);
-
   const value = useMemo(
-    () => ({ listings, addListing, updateListing, deleteListing }),
-    [listings, addListing, updateListing, deleteListing],
+    () => ({ listings, allListings, loading, refresh, addListing, updateListing, deleteListing }),
+    [listings, allListings, loading, refresh, addListing, updateListing, deleteListing],
   );
 
   return (

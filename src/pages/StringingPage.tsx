@@ -95,7 +95,7 @@ const MASTER_HIGHLIGHTS = [
 
 export default function StringingPage() {
   const { user, isAuthenticated } = useAuth();
-  const { orders: allStringingOrders, addOrder } = useStringingOrders();
+  const { orders: allStringingOrders, loading: stringingOrdersLoading, addOrder } = useStringingOrders();
   const [activeTab, setActiveTab] = useState<'order' | 'history'>('order');
   const [form, setForm] = useState<OrderForm>({
     racketModel: '',
@@ -366,7 +366,9 @@ export default function StringingPage() {
                   </Link>
                 </div>
 
-                {sortedAllOrders.length === 0 ? (
+                {stringingOrdersLoading ? (
+                  <p className="border-2 border-black bg-neutral-50 p-4 text-sm text-neutral-700">Загружаем заказы...</p>
+                ) : sortedAllOrders.length === 0 ? (
                   <p className="border-2 border-black bg-neutral-50 p-4 text-sm text-neutral-700">Пока нет заказов.</p>
                 ) : (
                   sortedAllOrders.map(order => {

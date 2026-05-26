@@ -1,8 +1,7 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, SquarePen, Trash2, X, Plus } from 'lucide-react';
+﻿import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, SquarePen, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getMarketSellerForProduct, products } from '../data/mockData';
 import { useProfileListings } from '../context/ProfileListingsContext';
 import { marketSellerFromProduct } from '../utils/marketSellerFromProduct';
 import { telHref } from '../utils/contactLinks';
@@ -35,47 +34,21 @@ function socialLinkClass(label: string): string {
 export default function MarketListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const numericId = id ? Number.parseInt(id, 10) : NaN;
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { listings: profileListings } = useProfileListings();
-  const product = Number.isFinite(numericId)
-    ? profileListings.find(p => p.id === numericId) ?? products.find(p => p.id === numericId)
-    : undefined;
-  const canAdminEdit = Boolean(user && user.role === 'admin');
-
-  const TEST_MODE_KEY = 'smash_test_mode';
-  const DELETED_PRODUCTS_KEY = 'smash_deleted_products_v1';
-
-  const loadDeletedIds = (): number[] => {
-    try {
-      const raw = localStorage.getItem(DELETED_PRODUCTS_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map((x: unknown) => Number(x)).filter((n: number) => Number.isFinite(n));
-    } catch {
-      return [];
-    }
-  };
-
-  const saveDeletedIds = (ids: number[]) => {
-    try {
-      localStorage.setItem(DELETED_PRODUCTS_KEY, JSON.stringify(ids));
-    } catch {
-      // ignore
-    }
-  };
-
-  const markDeleted = (productId: number) => {
-    const ids = loadDeletedIds();
-    if (!ids.includes(productId)) saveDeletedIds([...ids, productId]);
-  };
-
+  const { allListings, refresh: refreshListings } = useProfileListings();
   const [apiProduct, setApiProduct] = useState<Product | undefined>(undefined);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+
   useEffect(() => {
-    if (!canAdminEdit || !Number.isFinite(numericId)) return;
+    if (!Number.isFinite(numericId)) {
+      setApiProduct(undefined);
+      setLoadingProduct(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
+      setLoadingProduct(true);
       try {
         const res = await productService.getById(numericId);
         if (cancelled) return;
@@ -83,17 +56,17 @@ export default function MarketListingDetailPage() {
       } catch {
         if (cancelled) return;
         setApiProduct(undefined);
+      } finally {
+        if (!cancelled) setLoadingProduct(false);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [canAdminEdit, numericId]);
+  }, [numericId]);
 
-  const effectiveProduct = apiProduct ?? product;
-  const isUserListing = Boolean(
-    Number.isFinite(numericId) && profileListings.some(p => p.id === numericId),
-  );
+  const effectiveProduct = apiProduct ?? allListings.find(p => p.id === numericId);
+  const canManageProduct = Boolean(user && effectiveProduct && (user.role === 'admin' || effectiveProduct.ownerId === user.id));
 
   const galleryUrls = useMemo(
     () => (effectiveProduct ? buildListingGalleryUrls(effectiveProduct) : []),
@@ -193,6 +166,14 @@ export default function MarketListingDetailPage() {
     setActiveIndex(0);
   }, [numericId]);
 
+  if (loadingProduct && !effectiveProduct) {
+    return (
+      <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full px-4 py-10 text-gray-900 sm:px-6">
+        <p className="font-black text-lg">Загружаем объявление...</p>
+      </div>
+    );
+  }
+
   if (!effectiveProduct) {
     return (
       <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full px-4 py-10 text-gray-900 sm:px-6">
@@ -207,7 +188,7 @@ export default function MarketListingDetailPage() {
     );
   }
 
-  const seller = isUserListing ? marketSellerFromProduct(effectiveProduct) : getMarketSellerForProduct(effectiveProduct.id);
+  const seller = marketSellerFromProduct(effectiveProduct);
 
   return (
     <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full text-gray-900">
@@ -223,25 +204,7 @@ export default function MarketListingDetailPage() {
         <div className="mb-8 flex flex-wrap items-start justify-between gap-3 sm:gap-4">
           <h1 className="min-w-0 flex-1 text-xl font-black tracking-tight sm:text-2xl">{effectiveProduct.title}</h1>
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            {isUserListing && isAuthenticated ? (
-              <Link
-                to={`/profile?edit=${effectiveProduct.id}`}
-                onClick={() => {
-                  try {
-                    window.sessionStorage.setItem('sm-profile-edit-id', String(effectiveProduct.id));
-                  } catch {
-                    /* ignore */
-                  }
-                }}
-                className="inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-black bg-white text-gray-900 shadow-[2px_2px_0_0_#000] transition-colors hover:bg-primary/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-                aria-label="Редактировать объявление"
-                title="Редактировать объявление"
-              >
-                <SquarePen size={20} strokeWidth={2.2} aria-hidden />
-              </Link>
-            ) : null}
-
-            {canAdminEdit ? (
+            {canManageProduct ? (
               <>
                 <button
                   type="button"
@@ -278,13 +241,13 @@ export default function MarketListingDetailPage() {
           </div>
         </div>
 
-        {canAdminEdit && adminError ? (
+        {canManageProduct && adminError ? (
           <div className="mb-6 border-2 border-black bg-amber-50 p-3 text-sm font-semibold sketch-shadow-sm">
             {adminError}
           </div>
         ) : null}
 
-        {canAdminEdit && deleteConfirmOpen ? (
+        {canManageProduct && deleteConfirmOpen ? (
           <div
             className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-4"
             role="dialog"
@@ -330,16 +293,8 @@ export default function MarketListingDetailPage() {
                     try {
                       setAdminError('');
                       if (!Number.isFinite(numericId)) return;
-                      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
-                      if (isTestMode) {
-                        // В тестовом режиме удаляем из локального хранилища и помечаем, чтобы карточка исчезла.
-                        void productService.delete(numericId);
-                        markDeleted(numericId);
-                        navigate('/market');
-                        return;
-                      }
                       await productService.delete(numericId);
-                      markDeleted(numericId);
+                      await refreshListings();
                       navigate('/market');
                     } catch {
                       setAdminError('Не удалось удалить товар.');
@@ -356,7 +311,7 @@ export default function MarketListingDetailPage() {
           </div>
         ) : null}
 
-        {canAdminEdit && adminEditOpen ? (
+        {canManageProduct && adminEditOpen ? (
           <div className="mb-8 border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
             <div className="mb-4 flex items-start justify-between gap-3 border-b-2 border-black pb-3">
               <div>
@@ -405,6 +360,7 @@ export default function MarketListingDetailPage() {
                     await productService.update(numericId, payload);
                     const res = await productService.getById(numericId);
                     setApiProduct(res.data);
+                    await refreshListings();
                     setAdminEditOpen(false);
                   } catch {
                     setAdminError('Не удалось сохранить изменения.');
