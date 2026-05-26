@@ -131,7 +131,12 @@ export const authService = {
   login: (credentials: LoginCredentials) => api.post('/auth/login', credentials),
   register: (data: RegisterData) => api.post('/auth/register', data),
   getProfile: () => api.get('/auth/profile'),
-  updateProfile: (data: { name?: string; email?: string; phone?: string; contacts?: unknown }) =>
+  updateProfile: (data: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    contacts?: Array<{ platform: string; value: string }>;
+  }) =>
     api.patch('/auth/profile', data),
 };
 
