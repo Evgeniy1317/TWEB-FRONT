@@ -16,7 +16,7 @@ export default function ProfileListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const numericId = id ? Number.parseInt(id, 10) : NaN;
-  const { listings, deleteListing } = useProfileListings();
+  const { listings, loading, deleteListing } = useProfileListings();
   const product = Number.isFinite(numericId) ? listings.find(p => p.id === numericId) : undefined;
 
   const galleryUrls = useMemo(() => (product ? buildListingGalleryUrls(product) : []), [product]);
@@ -30,6 +30,14 @@ export default function ProfileListingDetailPage() {
     setActiveIndex(0);
     setContactsOpen(false);
   }, [numericId]);
+
+  if (loading && !product) {
+    return (
+      <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full px-4 py-10 text-gray-900 sm:px-6">
+        <p className="font-black text-lg">Загружаем объявление...</p>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -45,8 +53,8 @@ export default function ProfileListingDetailPage() {
     );
   }
 
-  const handleDelete = () => {
-    deleteListing(product.id);
+  const handleDelete = async () => {
+    await deleteListing(product.id);
     navigate('/profile');
   };
 

@@ -1,5 +1,5 @@
 import axios, { type InternalAxiosRequestConfig } from 'axios';
-import type { Product, StringingOrder, Court, Tournament } from '../types';
+import type { Product, StringingOrder } from '../types';
 import { products as mockProductsSeed } from '../data/mockData';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7237/api';
@@ -106,18 +106,16 @@ function writeProducts(next: Product[]) {
 
 export const stringingService = {
   getOrders: () => api.get<StringingOrder[]>('/stringing'),
-  createOrder: (data: Omit<StringingOrder, 'id' | 'status' | 'createdAt'>) =>
+  getMyOrders: () => api.get<StringingOrder[]>('/stringing/my'),
+  createOrder: (data: {
+    racketModel: string;
+    tension: string;
+    stringType: string;
+    totalLei: number;
+  }) =>
     api.post<StringingOrder>('/stringing', data),
   updateStatus: (id: number, status: StringingOrder['status']) =>
     api.put<StringingOrder>(`/stringing/${id}`, status),
-};
-
-export const courtService = {
-  getAll: () => api.get<Court[]>('/courts'),
-};
-
-export const tournamentService = {
-  getAll: () => api.get<Tournament[]>('/tournaments'),
 };
 
 interface LoginCredentials {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
+﻿import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, LayoutGrid, Search, X } from 'lucide-react';
 import FleaMarketListingCard from '../components/FleaMarketListingCard';
@@ -6,23 +6,12 @@ import MarketFiltersPanel, {
   type MarketConditionFilter,
   type MarketSortOption,
 } from '../components/MarketFiltersPanel';
-import { products } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { useProfileListings } from '../context/ProfileListingsContext';
 import { useCart } from '../context/CartContext';
-import { productService } from '../services/api';
 import type { Product, ProductFit } from '../types';
 import { categoryHasFitField, normalizeProductFit } from '../utils/productCategoryFields';
 import { publicUrl } from '../lib/publicUrl';
-
-function shuffle<T>(items: T[]): T[] {
-  const arr = [...items];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
 
 type RibbonItem = {
   id: string;
@@ -95,7 +84,7 @@ export default function MarketPage() {
   const [selectedRibbonId, setSelectedRibbonId] = useState<string>('all');
   const [categoryPickerOpen, setCategoryPickerOpen] = useState(false);
   const { isAuthenticated } = useAuth();
-  const { listings: profileListings } = useProfileListings();
+  const { allListings: displayProducts, loading: productsLoading } = useProfileListings();
   const navigate = useNavigate();
   const { isInCart, toggleProduct } = useCart();
 
@@ -116,63 +105,6 @@ export default function MarketPage() {
   const [filterSize, setFilterSize] = useState('');
   const [filterFit, setFilterFit] = useState<ProductFit | ''>('');
 
-  const [apiProducts, setApiProducts] = useState<Product[]>([]);
-  const DELETED_PRODUCTS_KEY = 'smash_deleted_products_v1';
-  const [deletedProductIds, setDeletedProductIds] = useState<number[]>(() => {
-    try {
-      const raw = localStorage.getItem(DELETED_PRODUCTS_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      return parsed.map((x: unknown) => Number(x)).filter((n: number) => Number.isFinite(n));
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await productService.getAll();
-        if (cancelled) return;
-        setApiProducts(res.data);
-      } catch {
-        // Если API недоступен — оставляем мок-данные, чтобы интерфейс не ломался.
-        if (cancelled) return;
-        setApiProducts([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    // На случай, если удаление произошло и мы уже на /market
-    try {
-      const raw = localStorage.getItem(DELETED_PRODUCTS_KEY);
-      if (!raw) {
-        setDeletedProductIds([]);
-        return;
-      }
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return;
-      setDeletedProductIds(parsed.map((x: unknown) => Number(x)).filter((n: number) => Number.isFinite(n)));
-    } catch {
-      setDeletedProductIds([]);
-    }
-  }, []);
-
-  // Важно: не делаем `shuffle` после загрузки API, иначе первая карточка будет "прыгать"
-  // (замена товара через ~2 секунды, когда `apiProducts` перестаёт быть пустым).
-  const displayProducts = useMemo(
-    () =>
-      [...(apiProducts.length ? apiProducts : products), ...profileListings].filter(
-        p => !deletedProductIds.includes(p.id),
-      ),
-    [apiProducts, profileListings, deletedProductIds],
-  );
 
   useEffect(() => {
     setFilterSize('');
@@ -473,7 +405,11 @@ export default function MarketPage() {
             <div className="mb-4 border-b-2 border-black pb-3">
               <h2 className="text-xl font-black tracking-tight sm:text-2xl">Рекомендованные</h2>
             </div>
-            {visibleListings.length === 0 ? (
+            {productsLoading ? (
+              <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow">
+                Загружаем объявления...
+              </p>
+            ) : visibleListings.length === 0 ? (
               <MarketListingsEmpty hint="filters" />
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
