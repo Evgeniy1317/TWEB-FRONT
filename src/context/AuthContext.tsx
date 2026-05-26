@@ -14,7 +14,7 @@ function loadStoredUser(): AppUser | null {
     if (!raw) return null;
     const p = JSON.parse(raw) as Partial<AppUser>;
     if (!p || typeof p.id !== 'number' || typeof p.email !== 'string') return null;
-    return {
+    return normalizeUser({
       id: p.id,
       email: p.email,
       name: typeof p.name === 'string' && p.name.trim() ? p.name : 'Пользователь',
@@ -23,7 +23,7 @@ function loadStoredUser(): AppUser | null {
       favorites: Array.isArray(p.favorites) ? p.favorites : [],
       avatar: p.avatar ?? null,
       role: p.role,
-    };
+    });
   } catch {
     return null;
   }
@@ -49,6 +49,15 @@ function normalizeUser(user: AppUser): AppUser {
   };
 }
 
+type ProfileContactPayload = {
+  platform: AppUser['contacts'][number]['platform'];
+  value: string;
+};
+
+type ProfileUpdatePayload = Pick<AppUser, 'name' | 'email' | 'phone'> & {
+  contacts: ProfileContactPayload[];
+};
+
 interface AuthContextValue {
   user: AppUser | null;
   isAuthenticated: boolean;
@@ -64,7 +73,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(() => loadStoredUser());
 
-  // При наличии токена пытаемся подтянуть актуальный профиль (в т.ч. role).
+  // При наличии токена подтягиваем актуальный профиль, включая роль.
   useEffect(() => {
     let cancelled = false;
     const isTestMode = typeof window !== 'undefined' && localStorage.getItem(TEST_MODE_KEY) === '1';
@@ -78,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(next);
         persistUser(next);
       } catch {
-        // Если токен протух/битый — очищаем.
+        // Если токен протух или битый, очищаем сессию.
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         persistUser(null);
         setUser(null);
@@ -124,7 +133,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginTest = useCallback(async (role: 'admin' | 'manager' | 'user') => {
     const name =
-      role === 'admin' ? 'Администратор (тест)' : role === 'manager' ? 'Менеджер (тест)' : 'Обычный пользователь (тест)';
+      role === 'admin'
+        ? 'Администратор (тест)'
+        : role === 'manager'
+          ? 'Менеджер (тест)'
+          : 'Обычный пользователь (тест)';
     const email =
       role === 'admin'
         ? 'admin@test.local'
@@ -167,9 +180,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateProfile = useCallback(async (updates: Pick<AppUser, 'name' | 'email' | 'phone' | 'contacts'>) => {
-    // Если в вашем API обновление профиля называется иначе — поправим этот endpoint.
-    const res = await authService.updateProfile(updates);
-    const next = res.data as AppUser;
+    const payload: ProfileUpdatePayload = {
+      name: updates.name,
+      email: updates.email,
+      phone: updates.phone,
+      contacts: updates.contacts.map(contact => ({
+        platform: contact.platform,
+        value: contact.value,
+      })),
+    };
+
+    const res = await authService.updateProfile(payload);
+    const next = normalizeUser(res.data as AppUser);
     setUser(next);
     persistUser(next);
   }, []);

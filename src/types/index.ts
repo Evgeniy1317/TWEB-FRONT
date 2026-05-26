@@ -98,7 +98,7 @@ export interface SellerContactSnapshot {
 }
 
 export interface UserContact {
-  id: string;
+  id: string | number;
   platform: UserContactPlatform;
   value: string;
 }

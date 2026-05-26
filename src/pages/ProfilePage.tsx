@@ -326,6 +326,8 @@ export default function ProfilePage() {
     phone: '',
     contacts: [],
   });
+  const [profileSaveError, setProfileSaveError] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || !user) {
@@ -543,7 +545,7 @@ export default function ProfilePage() {
   };
 
   const updateContactField = <K extends keyof UserContact>(
-    id: string,
+    id: UserContact['id'],
     key: K,
     value: UserContact[K],
   ) => {
@@ -553,7 +555,7 @@ export default function ProfilePage() {
     }));
   };
 
-  const removeContactField = (id: string) => {
+  const removeContactField = (id: UserContact['id']) => {
     setEditProfileForm(prev => ({
       ...prev,
       contacts: prev.contacts.filter(contact => contact.id !== id),
@@ -695,6 +697,7 @@ export default function ProfilePage() {
 
   const handleProfileSave = async (event: FormEvent) => {
     event.preventDefault();
+    setProfileSaveError('');
 
     const contactsSaved = normalizeContactsForEdit(
       editProfileForm.contacts.map(contact => ({
@@ -703,12 +706,19 @@ export default function ProfilePage() {
       })),
     ).filter(contact => contact.value.length > 0);
 
-    await updateProfile({
-      name: editProfileForm.name.trim(),
-      email: editProfileForm.email.trim(),
-      phone: editProfileForm.phone.trim(),
-      contacts: contactsSaved,
-    });
+    setProfileSaving(true);
+    try {
+      await updateProfile({
+        name: editProfileForm.name.trim(),
+        email: editProfileForm.email.trim(),
+        phone: editProfileForm.phone.trim(),
+        contacts: contactsSaved,
+      });
+    } catch (err) {
+      setProfileSaveError(getApiErrorMessage(err, 'Не удалось сохранить профиль.'));
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -1307,6 +1317,12 @@ export default function ProfilePage() {
         </div>
 
         <form onSubmit={handleProfileSave} className="border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
+          {profileSaveError ? (
+            <div className="mb-4 border-2 border-red-500 bg-red-50 p-3 text-sm font-bold text-red-700">
+              {profileSaveError}
+            </div>
+          ) : null}
+
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="block">
               <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.24em] text-neutral-500">
@@ -1429,9 +1445,10 @@ export default function ProfilePage() {
           <div className="mt-6 flex flex-wrap gap-3 border-t-2 border-black pt-5">
             <button
               type="submit"
-              className="border-2 border-black bg-primary px-5 py-3 font-bold text-black sketch-shadow-sm transition-colors hover:bg-primary-dark"
+              disabled={profileSaving}
+              className="border-2 border-black bg-primary px-5 py-3 font-bold text-black sketch-shadow-sm transition-colors hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Сохранить изменения
+              {profileSaving ? 'Сохраняем...' : 'Сохранить изменения'}
             </button>
             <button
               type="button"
