@@ -9,7 +9,6 @@ import {
 } from 'react';
 import type { Product } from '../types';
 import { productService } from '../services/api';
-import { loadProfileListings, saveProfileListings } from '../services/profileListings';
 import { useAuth } from './AuthContext';
 
 type ProductPayload = Omit<Product, 'id' | 'ownerId'>;
@@ -56,8 +55,7 @@ export function ProfileListingsProvider({ children }: { children: ReactNode }) {
       const res = await productService.getAll();
       setAllListings(res.data);
     } catch {
-      const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
-      setAllListings(isTestMode ? loadProfileListings() : []);
+      setAllListings([]);
     } finally {
       setLoading(false);
     }
@@ -98,11 +96,6 @@ export function ProfileListingsProvider({ children }: { children: ReactNode }) {
     },
     [refresh],
   );
-
-  useEffect(() => {
-    const isTestMode = typeof window !== 'undefined' && localStorage.getItem('smash_test_mode') === '1';
-    if (isTestMode) saveProfileListings(listings);
-  }, [listings]);
 
   const value = useMemo(
     () => ({ listings, allListings, loading, refresh, addListing, updateListing, deleteListing }),
