@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import { publicUrl } from '../lib/publicUrl';
 import { useAuth } from '../context/AuthContext';
 import { useStringingOrders } from '../context/StringingOrdersContext';
@@ -20,64 +21,40 @@ import {
   X,
 } from 'lucide-react';
 
-/** Струны в наличии: цена перетяжки с выбранной струной */
 const STRING_IN_STOCK = [
-  { id: 'stock-150', name: 'Струна в наличии — вариант 1', priceLei: 150 },
-  { id: 'stock-200', name: 'Струна в наличии — вариант 2', priceLei: 200 },
+  { id: 'stock-150', name: 'Струна в наличии - вариант 1', priceLei: 150 },
+  { id: 'stock-200', name: 'Струна в наличии - вариант 2', priceLei: 200 },
 ] as const;
 
-/** Подставьте свои ссылки мастера */
 const MASTER_SOCIAL = {
   telegram: 'https://t.me/anzorcik228',
   instagram: 'https://www.instagram.com/anzor_sturza/',
-  /** Публичный чат или viber:// — замените на свой */
   viber: 'https://chats.viber.com/anzor_sturza',
 } as const;
 
 const categorySelectedShadowClass = 'shadow-[3px_3px_0_0_#00E676]';
-
 const TENSION_PRESETS = [9, 10, 10.5, 11, 11.5, 12] as const;
-
-function formatTensionKgDisplay(value: string): string {
-  return value.trim() === '' ? '—' : value.replace(/\./g, ',');
-}
-
-function isValidTensionKg(value: string): boolean {
-  const n = Number.parseFloat(value.replace(',', '.'));
-  if (Number.isNaN(n)) return false;
-  return n >= 8 && n <= 35;
-}
-
-interface OrderForm {
-  racketModel: string;
-  tension: string;
-  stringType: string;
-}
-
 const STRINGING_HERO_IMG = publicUrl('media/images/original-7aa6660ec4e2a8199a342ced2a016ac5.webp');
-
-/** Портрет мастера: положите файл в public/media/images/ (например stringing-master.webp) */
 const STRINGING_MASTER_IMG = publicUrl('media/images/5368680524567746267.jpg');
-
 const STRINGING_VIDEO_SRC = publicUrl('media/videos/IMG_0198.mp4');
 
 const STRINGING_STATUS_LABEL: Record<StringingOrderStatus, string> = {
   handover: 'В передаче',
   in_progress: 'Получена, в работе',
   ready: 'Готово',
-  cancelled: 'Отменён',
+  cancelled: 'Отменен',
 };
 
 const STRINGING_FAQ = [
   {
     q: 'Сколько времени занимает перетяжка?',
     short: 'Срок',
-    a: 'Обычно 1–2 дня — точный срок уточняйте при записи.',
+    a: 'Обычно 1-2 дня. Точный срок уточняйте при записи.',
   },
   {
     q: 'Можно принести свои струны?',
     short: 'Свои струны',
-    a: 'Да, обсудите с мастером заранее в сообщении.',
+    a: 'Да, обсудите это с мастером заранее в сообщении.',
   },
   {
     q: 'Как передать и забрать ракетку?',
@@ -86,12 +63,49 @@ const STRINGING_FAQ = [
   },
 ] as const;
 
-/** Короткие пункты под контактами — заполняют середину колонки без пустоты */
 const MASTER_HIGHLIGHTS = [
   'Электронный станок и точный натяг',
   'Подбор струн под ваш стиль игры',
   'Запись по телефону или в Telegram',
 ] as const;
+
+interface OrderForm {
+  racketModel: string;
+  tension: string;
+  stringType: string;
+}
+
+function formatTensionKgDisplay(value: string): string {
+  return value.trim() === '' ? '-' : value.replace(/\./g, ',');
+}
+
+function isValidTensionKg(value: string): boolean {
+  const n = Number.parseFloat(value.replace(',', '.'));
+  if (Number.isNaN(n)) return false;
+  return n >= 8 && n <= 35;
+}
+
+function validateStringingForm(form: OrderForm, totalLei: number): string {
+  if (!form.racketModel.trim()) return 'Укажите модель ракетки.';
+  if (!form.tension.trim()) return 'Укажите натяжение.';
+  if (!isValidTensionKg(form.tension)) return 'Натяжение должно быть числом от 8 до 35 кг.';
+  if (!form.stringType.trim()) return 'Выберите тип струны.';
+  if (!Number.isFinite(totalLei) || totalLei < 0 || totalLei > 999999) {
+    return 'Стоимость заказа должна быть от 0 до 999999 lei.';
+  }
+  return '';
+}
+
+function getStringingErrorMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    if (err.response?.status === 400) return 'Не удалось сохранить заказ: проверьте данные.';
+    if (err.response?.status === 401) return 'Войдите в аккаунт, чтобы сохранить заказ.';
+    if (err.response?.status === 403) return 'У вас нет прав для этого действия.';
+    if (err.response?.status) return `Ошибка сохранения заказа: ${err.response.status}.`;
+    return 'Сервер недоступен или запрос заблокирован браузером.';
+  }
+  return 'Не удалось сохранить заказ. Попробуйте еще раз.';
+}
 
 export default function StringingPage() {
   const { user, isAuthenticated } = useAuth();
@@ -115,14 +129,27 @@ export default function StringingPage() {
   const [masterPhotoError, setMasterPhotoError] = useState(false);
   const [videoStarted, setVideoStarted] = useState(false);
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  const [orderError, setOrderError] = useState('');
+  const [orderSaving, setOrderSaving] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handleVideoPlayClick = () => {
-    setVideoStarted(true);
-    void videoRef.current?.play();
-  };
+  const selectedString = STRING_IN_STOCK.find(s => s.id === form.stringType);
+  const totalLei = selectedString?.priceLei ?? 0;
+  const tensionIsPreset = TENSION_PRESETS.some(p => String(p) === form.tension);
+  const sortedAllOrders = useMemo(
+    () => [...allStringingOrders].sort((a, b) => b.id - a.id),
+    [allStringingOrders],
+  );
 
-  /** Показать кадр превью вместо чёрного экрана до воспроизведения */
+  useEffect(() => {
+    if (!contactModalOpen && !tensionCustomOpen && !successModalOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [contactModalOpen, tensionCustomOpen, successModalOpen]);
+
   useEffect(() => {
     const v = videoRef.current;
     if (!v || videoStarted) return;
@@ -138,48 +165,50 @@ export default function StringingPage() {
     return () => v.removeEventListener('loadeddata', showFrame);
   }, [videoStarted]);
 
-  const selectedString = STRING_IN_STOCK.find(s => s.id === form.stringType);
-  const totalLei = selectedString?.priceLei ?? 0;
-
-  useEffect(() => {
-    if (!contactModalOpen && !tensionCustomOpen && !successModalOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [contactModalOpen, tensionCustomOpen, successModalOpen]);
-
-  const tensionIsPreset = TENSION_PRESETS.some(p => String(p) === form.tension);
+  const handleVideoPlayClick = () => {
+    setVideoStarted(true);
+    void videoRef.current?.play();
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (!isValidTensionKg(form.tension)) return;
-    const sel = STRING_IN_STOCK.find(s => s.id === form.stringType);
+    const validationError = validateStringingForm(form, totalLei);
+    setOrderError('');
+    if (validationError) {
+      setOrderError(validationError);
+      return;
+    }
+
     setPendingOrderDraft({
-      racketModel: form.racketModel,
+      racketModel: form.racketModel.trim(),
       tension: form.tension,
-      stringTypeLabel: sel ? `${sel.name} — ${sel.priceLei} lei` : form.stringType,
-      totalLei: sel?.priceLei ?? 0,
+      stringTypeLabel: selectedString ? `${selectedString.name} - ${selectedString.priceLei} lei` : form.stringType,
+      totalLei,
     });
     setContactModalOpen(true);
   };
 
   const confirmSaveOrderFromModal = async () => {
     if (!user || !pendingOrderDraft) return;
-    await addOrder({
-      ...pendingOrderDraft,
-      clientUserId: user.id,
-      clientName: user.name,
-    });
-    setContactModalOpen(false);
-    setSuccessModalOpen(true);
-    setActiveTab('history');
-    setForm({ racketModel: '', tension: '11.5', stringType: STRING_IN_STOCK[0].id });
-    setPendingOrderDraft(null);
+    setOrderError('');
+    setOrderSaving(true);
+    try {
+      await addOrder({
+        ...pendingOrderDraft,
+        clientUserId: user.id,
+        clientName: user.name,
+      });
+      setContactModalOpen(false);
+      setSuccessModalOpen(true);
+      setActiveTab('history');
+      setForm({ racketModel: '', tension: '11.5', stringType: STRING_IN_STOCK[0].id });
+      setPendingOrderDraft(null);
+    } catch (err) {
+      setOrderError(getStringingErrorMessage(err));
+    } finally {
+      setOrderSaving(false);
+    }
   };
-
-  const sortedAllOrders = [...allStringingOrders].sort((a, b) => b.id - a.id);
 
   const applyCustomTension = () => {
     const normalized = customTensionDraft.trim().replace(',', '.');
@@ -196,15 +225,14 @@ export default function StringingPage() {
   return (
     <div className="sketch-page min-h-[calc(100dvh-4.5rem)] w-full">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10 lg:py-12">
-        {/* Hero */}
-        <header className="grid grid-cols-1 gap-4 border-2 border-black bg-white p-4 sketch-shadow sm:gap-5 sm:p-5 md:grid-cols-[minmax(0,180px)_1fr] md:items-center md:gap-6 md:p-6 lg:grid-cols-[minmax(0,200px)_1fr] rounded-md">
-          <div className="relative aspect-square w-full max-w-[180px] shrink-0 overflow-hidden mx-auto min-h-0 min-w-0 md:mx-0 md:max-w-none md:w-full md:self-center">
-            <div className="flex h-full w-full items-center justify-center p-2 sm:p-2">
+        <header className="grid grid-cols-1 gap-4 rounded-md border-2 border-black bg-white p-4 sketch-shadow sm:gap-5 sm:p-5 md:grid-cols-[minmax(0,180px)_1fr] md:items-center md:gap-6 md:p-6 lg:grid-cols-[minmax(0,200px)_1fr]">
+          <div className="relative mx-auto aspect-square w-full max-w-[180px] shrink-0 overflow-hidden md:mx-0 md:w-full md:max-w-none">
+            <div className="flex h-full w-full items-center justify-center p-2">
               <img
                 src={STRINGING_HERO_IMG}
                 alt=""
                 sizes="(min-width: 1024px) 184px, (min-width: 768px) 164px, 164px"
-                className="max-h-full max-w-full object-contain object-center [image-rendering:auto]"
+                className="max-h-full max-w-full object-contain object-center"
                 width={800}
                 height={600}
                 decoding="async"
@@ -213,23 +241,22 @@ export default function StringingPage() {
               />
             </div>
           </div>
-          <div className="flex min-w-0 flex-col justify-center md:min-h-0 md:self-center">
-            <h1 className="font-black tracking-tight text-gray-900 text-2xl sm:text-3xl md:text-4xl">
+          <div className="flex min-w-0 flex-col justify-center">
+            <h1 className="text-2xl font-black tracking-tight text-gray-900 sm:text-3xl md:text-4xl">
               Перетяжка ракеток
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-neutral-700 sm:text-[15px]">
-              Натяжка на электронном станке, учёт ваших пожеланий по натягу и струнам. Оформите заказ ниже — список заказов и
-              статус перетяжки смотрите в личном профиле.
+              Натяжка на электронном станке, учет ваших пожеланий по натягу и струнам. Оформите заказ ниже -
+              список заказов и статус перетяжки смотрите в личном профиле.
             </p>
           </div>
         </header>
 
-        {/* Заказ */}
         <section className="mt-8" aria-labelledby="stringing-order-heading">
           <h2 id="stringing-order-heading" className="sr-only">
             Оформление заказа
           </h2>
-          <div className="inline-flex w-full max-w-md gap-0 border-2 border-black bg-white p-1 sketch-shadow-sm rounded-md">
+          <div className="inline-flex w-full max-w-md gap-0 rounded-md border-2 border-black bg-white p-1 sketch-shadow-sm">
             <button
               type="button"
               onClick={() => setActiveTab('order')}
@@ -257,9 +284,15 @@ export default function StringingPage() {
           </div>
 
           <div className="mt-5">
-            {activeTab === 'order' && (
-              <div className="border-2 border-black bg-white p-4 sketch-shadow sm:p-5 rounded-md">
-                <form onSubmit={handleSubmit} className="space-y-5">
+            {activeTab === 'order' ? (
+              <div className="rounded-md border-2 border-black bg-white p-4 sketch-shadow sm:p-5">
+                <form onSubmit={handleSubmit} noValidate className="space-y-5">
+                  {orderError ? (
+                    <div className="border-2 border-red-500 bg-red-50 p-3 text-sm font-bold text-red-700">
+                      {orderError}
+                    </div>
+                  ) : null}
+
                   <div>
                     <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-neutral-600">
                       Модель ракетки
@@ -267,12 +300,14 @@ export default function StringingPage() {
                     <input
                       type="text"
                       required
+                      maxLength={120}
                       placeholder="Напр. Yonex Astrox 88D"
                       value={form.racketModel}
                       onChange={e => setForm({ ...form, racketModel: e.target.value })}
                       className="sketch-input w-full border-2 border-black bg-white px-3 py-2.5 text-sm font-medium text-gray-900 placeholder:text-neutral-400"
                     />
                   </div>
+
                   <div>
                     <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-neutral-600">
                       Натяжение (кг)
@@ -308,10 +343,11 @@ export default function StringingPage() {
                             : 'bg-white text-gray-900 sketch-shadow-sm'
                         }`}
                       >
-                        Своё
+                        Свое
                       </button>
                     </div>
                   </div>
+
                   <div>
                     <label className="mb-1.5 block text-xs font-black uppercase tracking-wider text-neutral-600">
                       Тип струны (в наличии)
@@ -324,11 +360,12 @@ export default function StringingPage() {
                     >
                       {STRING_IN_STOCK.map(s => (
                         <option key={s.id} value={s.id}>
-                          {s.name} — {s.priceLei} lei
+                          {s.name} - {s.priceLei} lei
                         </option>
                       ))}
                     </select>
                   </div>
+
                   <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-black bg-neutral-50 px-3 py-3 text-sm font-black text-gray-900">
                     <span className="uppercase tracking-wide">Итого</span>
                     <span
@@ -338,6 +375,7 @@ export default function StringingPage() {
                       {totalLei} lei
                     </span>
                   </div>
+
                   <button
                     type="submit"
                     className="flex w-full items-center justify-center gap-2 border-2 border-black bg-primary py-3 font-black uppercase tracking-wide text-black sketch-shadow-sm transition-transform hover:-translate-y-0.5"
@@ -347,15 +385,13 @@ export default function StringingPage() {
                   </button>
                 </form>
               </div>
-            )}
-
-            {activeTab === 'history' && (
+            ) : (
               <div className="space-y-4">
-                <div className="border-2 border-black bg-white p-4 sketch-shadow sm:p-5 rounded-md">
-                  <h3 className="font-black text-lg text-gray-900 sm:text-xl">Все заказы</h3>
+                <div className="rounded-md border-2 border-black bg-white p-4 sketch-shadow sm:p-5">
+                  <h3 className="text-lg font-black text-gray-900 sm:text-xl">Все заказы</h3>
                   <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                    Общий список заявок на перетяжку, которые мастер принял в работу. В профиле во вкладке «Мои заказы»
-                    отображаются только ваши заказы — с теми же этапами, что и в этом списке.
+                    Общий список заявок на перетяжку. В профиле во вкладке "Мои заказы" отображаются только ваши
+                    заказы с теми же этапами, что и в этом списке.
                   </p>
                   <Link
                     to="/profile?tab=orders"
@@ -376,7 +412,7 @@ export default function StringingPage() {
                     return (
                       <article
                         key={order.id}
-                        className={`border-2 border-black bg-white p-4 sketch-shadow sm:p-5 rounded-md ${
+                        className={`rounded-md border-2 border-black bg-white p-4 sketch-shadow sm:p-5 ${
                           mine ? 'ring-2 ring-primary ring-offset-2' : ''
                         }`}
                       >
@@ -386,7 +422,7 @@ export default function StringingPage() {
                               Заказ #{order.id}
                               {mine ? ' · ваш' : ''}
                             </p>
-                            <h4 className="mt-1 font-black text-base text-gray-900 sm:text-lg">{order.racketModel}</h4>
+                            <h4 className="mt-1 text-base font-black text-gray-900 sm:text-lg">{order.racketModel}</h4>
                             <p className="mt-1 text-sm text-neutral-600">
                               {(mine ? order.clientName ?? 'Вы' : 'Клиент') +
                                 ' · ' +
@@ -430,7 +466,6 @@ export default function StringingPage() {
           </div>
         </section>
 
-        {/* Одна рамка без общей тени (тень убрана с блока — портрет мастера только с обводкой) */}
         <section className="mt-14 sm:mt-16" aria-labelledby="stringing-video-master-heading">
           <h2 id="stringing-video-master-heading" className="sr-only">
             Видео, мастер и вопросы
@@ -448,7 +483,7 @@ export default function StringingPage() {
                     controls={videoStarted}
                     onPlay={() => setVideoStarted(true)}
                   />
-                  {!videoStarted && (
+                  {!videoStarted ? (
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                       <button
                         type="button"
@@ -459,12 +494,12 @@ export default function StringingPage() {
                         <Play className="ml-1 h-7 w-7 fill-current sm:h-8 sm:w-8" />
                       </button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
+
               <div className="flex h-full min-h-0 min-w-0 flex-col">
                 <div className="flex h-full min-h-0 flex-col gap-0 p-2.5 sm:p-3">
-                  {/* Мобильный: фото слева, имя и описание справа; десктоп: та же сетка + кнопки ниже на всю ширину */}
                   <div className="flex shrink-0 flex-row items-start gap-2.5 sm:gap-3">
                     <div className="relative w-[7.25rem] shrink-0 sm:w-[12rem]">
                       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-md border-2 border-black bg-neutral-100 shadow-none">
@@ -487,15 +522,14 @@ export default function StringingPage() {
                       </div>
                     </div>
                     <div className="min-h-0 min-w-0 flex-1 text-left">
-                      <p className="font-black text-lg leading-tight text-gray-900 sm:text-2xl">
-                        Anzor Sturza
-                      </p>
+                      <p className="text-lg font-black leading-tight text-gray-900 sm:text-2xl">Anzor Sturza</p>
                       <p className="mt-1.5 text-[13px] leading-snug text-neutral-700 sm:mt-2 sm:text-[15px] sm:leading-relaxed">
-                        Работает на электронном станке, подбирает натяжение струн и тип струны под ваш стиль игры. Принимает
-                        ракетки по записи, консультирует по струнам и уходу за кадром.
+                        Работает на электронном станке, подбирает натяжение и тип струны под ваш стиль игры.
+                        Принимает ракетки по записи и консультирует по уходу за инвентарем.
                       </p>
                     </div>
                   </div>
+
                   <ul className="mt-3 grid shrink-0 grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-2">
                     <li className="min-w-0">
                       <a
@@ -518,6 +552,7 @@ export default function StringingPage() {
                       </a>
                     </li>
                   </ul>
+
                   <ul
                     className="mt-3 shrink-0 space-y-1.5 border-2 border-black bg-neutral-50 px-2.5 py-2 text-[11px] font-semibold leading-snug text-neutral-800 sm:text-xs"
                     aria-label="Преимущества"
@@ -529,10 +564,8 @@ export default function StringingPage() {
                       </li>
                     ))}
                   </ul>
-                  <div
-                    className="mt-3 flex min-h-0 flex-1 flex-col border-t-2 border-black pt-2"
-                    aria-label="Частые вопросы"
-                  >
+
+                  <div className="mt-3 flex min-h-0 flex-1 flex-col border-t-2 border-black pt-2" aria-label="Частые вопросы">
                     <p className="w-full shrink-0 text-center text-xs font-black uppercase tracking-[0.14em] text-neutral-800 sm:text-sm">
                       Частые вопросы
                     </p>
@@ -585,7 +618,7 @@ export default function StringingPage() {
         </section>
       </div>
 
-      {tensionCustomOpen && (
+      {tensionCustomOpen ? (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
           role="dialog"
@@ -605,8 +638,8 @@ export default function StringingPage() {
             >
               <X className="h-4 w-4" strokeWidth={2.5} />
             </button>
-            <h3 id="tension-custom-title" className="pr-7 font-black text-sm text-gray-900 sm:text-base">
-              Своё натяжение (кг)
+            <h3 id="tension-custom-title" className="pr-7 text-sm font-black text-gray-900 sm:text-base">
+              Свое натяжение (кг)
             </h3>
             <input
               type="text"
@@ -642,9 +675,9 @@ export default function StringingPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {contactModalOpen && (
+      {contactModalOpen ? (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
           role="dialog"
@@ -670,12 +703,17 @@ export default function StringingPage() {
             >
               <X className="h-5 w-5" strokeWidth={2.5} />
             </button>
-            <h3 id="stringing-contact-modal-title" className="pr-8 font-black text-base text-gray-900 sm:text-lg">
+            <h3 id="stringing-contact-modal-title" className="pr-8 text-base font-black text-gray-900 sm:text-lg">
               Свяжитесь с мастером
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-              Чтобы передать ракетку на перетяжку, напишите мастеру — договоритесь о времени и передаче ракетки.
+              Чтобы передать ракетку на перетяжку, напишите мастеру и договоритесь о времени передачи.
             </p>
+            {orderError ? (
+              <div className="mt-3 border-2 border-red-500 bg-red-50 p-3 text-sm font-bold text-red-700">
+                {orderError}
+              </div>
+            ) : null}
             <p className="mt-3 text-xs font-bold uppercase tracking-wide text-neutral-500">Контакты</p>
             <ul className="mt-2 space-y-2">
               <li>
@@ -715,8 +753,8 @@ export default function StringingPage() {
 
             <div className="mt-5 border-t-2 border-neutral-200 pt-4">
               <p className="text-xs font-bold leading-relaxed text-neutral-700">
-                После связи с мастером нажмите «Сохранить в профиль» — заказ появится во вкладке «Все заказы» на этой
-                странице и в профиле во вкладке «Мои заказы».
+                После связи с мастером нажмите "Сохранить в профиль" - заказ появится в профиле во вкладке
+                "Мои заказы".
               </p>
               {!isAuthenticated ? (
                 <p className="mt-3 text-sm text-neutral-800">
@@ -743,19 +781,19 @@ export default function StringingPage() {
                 </button>
                 <button
                   type="button"
-                  disabled={!user || !pendingOrderDraft}
+                  disabled={!user || !pendingOrderDraft || orderSaving}
                   onClick={confirmSaveOrderFromModal}
                   className="flex-1 border-2 border-black bg-primary py-2.5 text-xs font-black uppercase text-black disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  Сохранить в профиль
+                  {orderSaving ? 'Сохраняем...' : 'Сохранить в профиль'}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {successModalOpen && (
+      {successModalOpen ? (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 p-4"
           role="dialog"
@@ -780,16 +818,14 @@ export default function StringingPage() {
                 <CheckCircle2 className="h-6 w-6 text-black" strokeWidth={2.5} aria-hidden />
               </div>
               <div>
-                <h3 id="stringing-success-modal-title" className="font-black text-base text-gray-900 sm:text-lg">
+                <h3 id="stringing-success-modal-title" className="text-base font-black text-gray-900 sm:text-lg">
                   Заказ добавлен
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-neutral-700">
-                  Заказ появился в профиле во вкладке «Мои заказы» и в списке «Все заказы» на этой странице. Первый этап
-                  — «В передаче»: ожидается передача ракетки мастеру; дальнейшие этапы обновит мастер по мере работы.
+                  Заказ появился в профиле во вкладке "Мои заказы". Первый этап - "В передаче".
                 </p>
                 <p className="mt-3 text-sm leading-relaxed text-neutral-700">
-                  Когда ракетка будет готова к выдаче, на указанную в профиле электронную почту придёт письмо с
-                  напоминанием забрать заказ.
+                  Когда ракетка будет готова к выдаче, статус обновит мастер.
                 </p>
               </div>
             </div>
@@ -812,7 +848,7 @@ export default function StringingPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -119,12 +119,51 @@ const initialListingForm: ListingFormState = {
   fit: 'unisex',
 };
 
-const sanitizePriceInput = (value: string) => value.replace(/\D+/g, '');
+const MAX_LISTING_IMAGES = 8;
+const MAX_CONTACT_VALUE_LENGTH = 200;
+
+const sanitizePriceInput = (value: string) => {
+  const normalized = value.replace(',', '.').replace(/[^\d.]/g, '');
+  const [whole, ...rest] = normalized.split('.');
+  return rest.length === 0 ? whole : `${whole}.${rest.join('').slice(0, 2)}`;
+};
 
 function blockNonNumericKeys(event: KeyboardEvent<HTMLInputElement>) {
-  if (['e', 'E', '+', '-', '.', ','].includes(event.key)) {
+  if (['e', 'E', '+', '-'].includes(event.key)) {
     event.preventDefault();
   }
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function validateListingForm(form: ListingFormState): string {
+  const title = form.title.trim();
+  const description = form.description.trim();
+  const price = Number.parseFloat(form.price);
+
+  if (title.length < 3) return 'Название должно быть не короче 3 символов.';
+  if (title.length > 100) return 'Название должно быть не длиннее 100 символов.';
+  if (!Number.isFinite(price) || price < 0.01) return 'Цена должна быть не меньше 0.01 MDL.';
+  if (price > 999999) return 'Цена должна быть не больше 999999 MDL.';
+  if (form.imagePreviews.length === 0) return 'Добавьте хотя бы одно фото PNG.';
+  if (form.imagePreviews.length > MAX_LISTING_IMAGES) return 'Можно добавить не больше 8 PNG фото.';
+  if (description.length < 1) return 'Описание обязательно.';
+  if (description.length > 1000) return 'Описание должно быть не длиннее 1000 символов.';
+  return '';
+}
+
+function validateProfileForm(form: EditProfileFormState): string {
+  const name = form.name.trim();
+  const email = form.email.trim();
+  if (name.length < 3) return 'Имя должно быть не короче 3 символов.';
+  if (name.length > 50) return 'Имя должно быть не длиннее 50 символов.';
+  if (!isValidEmail(email)) return 'Введите корректный email адрес.';
+  if (form.contacts.some(contact => contact.value.trim().length > MAX_CONTACT_VALUE_LENGTH)) {
+    return 'Значение контакта должно быть не длиннее 200 символов.';
+  }
+  return '';
 }
 
 function productToForm(p: Product): ListingFormState {
@@ -567,6 +606,13 @@ export default function ProfilePage() {
     if (files.length === 0) return;
 
     if (files.some(file => file.type !== 'image/png')) {
+      setListingContactError('Можно загружать только PNG фото.');
+      event.target.value = '';
+      return;
+    }
+
+    if (listingForm.imagePreviews.length + files.length > MAX_LISTING_IMAGES) {
+      setListingContactError('Можно добавить не больше 8 PNG фото.');
       event.target.value = '';
       return;
     }
@@ -585,8 +631,9 @@ export default function ProfilePage() {
       setListingForm(prev => ({
         ...prev,
         image: prev.imagePreviews[0] ?? validImages[0] ?? '',
-        imagePreviews: [...prev.imagePreviews, ...validImages].slice(0, 8),
+        imagePreviews: [...prev.imagePreviews, ...validImages].slice(0, MAX_LISTING_IMAGES),
       }));
+      setListingContactError('');
       event.target.value = '';
     });
   };
@@ -594,17 +641,14 @@ export default function ProfilePage() {
   const handleCreateListing = async (event: FormEvent) => {
     event.preventDefault();
 
-    const price = Number.parseInt(listingForm.price, 10);
-    if (!Number.isFinite(price) || price <= 0) {
-      setListingContactError('Укажите цену больше 0.');
+    const validationError = validateListingForm(listingForm);
+    if (validationError) {
+      setListingContactError(validationError);
       return;
     }
 
+    const price = Number.parseFloat(listingForm.price);
     const image = listingForm.imagePreviews[0] ?? listingForm.image;
-    if (!image?.trim()) {
-      setListingContactError('Добавьте хотя бы одно фото PNG.');
-      return;
-    }
 
     const existing =
       listingEditingId !== null ? profileListings.find(l => l.id === listingEditingId) : undefined;
@@ -699,6 +743,12 @@ export default function ProfilePage() {
     event.preventDefault();
     setProfileSaveError('');
 
+    const validationError = validateProfileForm(editProfileForm);
+    if (validationError) {
+      setProfileSaveError(validationError);
+      return;
+    }
+
     const contactsSaved = normalizeContactsForEdit(
       editProfileForm.contacts.map(contact => ({
         ...contact,
@@ -763,6 +813,7 @@ export default function ProfilePage() {
         <form
           id="profile-listing-form"
           onSubmit={handleCreateListing}
+          noValidate
           className="mb-6 scroll-mt-24 border-2 border-black bg-white p-5 sketch-shadow sm:p-6"
         >
           <div className="mb-6 border-b-2 border-black pb-4">
@@ -844,6 +895,8 @@ export default function ProfilePage() {
                 id="listing-title"
                 type="text"
                 required
+                minLength={3}
+                maxLength={100}
                 value={listingForm.title}
                 onChange={event => updateListingForm('title', event.target.value)}
                 placeholder="Например, Yonex Astrox 88D Pro"
@@ -885,9 +938,10 @@ export default function ProfilePage() {
                 <input
                   id="listing-price"
                   type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  inputMode="decimal"
                   required
+                  min="0.01"
+                  max="999999"
                   value={listingForm.price}
                   onKeyDown={blockNonNumericKeys}
                   onChange={event => updateListingForm('price', sanitizePriceInput(event.target.value))}
@@ -1002,6 +1056,8 @@ export default function ProfilePage() {
               <textarea
                 id="listing-description"
                 required
+                minLength={1}
+                maxLength={1000}
                 rows={5}
                 value={listingForm.description}
                 onChange={event => updateListingForm('description', event.target.value)}
@@ -1320,7 +1376,7 @@ export default function ProfilePage() {
           <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Изменить профиль</h2>
         </div>
 
-        <form onSubmit={handleProfileSave} className="border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
+        <form onSubmit={handleProfileSave} noValidate className="border-2 border-black bg-white p-5 sketch-shadow sm:p-6">
           {profileSaveError ? (
             <div className="mb-4 border-2 border-red-500 bg-red-50 p-3 text-sm font-bold text-red-700">
               {profileSaveError}
@@ -1335,6 +1391,8 @@ export default function ProfilePage() {
               <input
                 type="text"
                 required
+                minLength={3}
+                maxLength={50}
                 value={editProfileForm.name}
                 onChange={event => updateEditProfileForm('name', event.target.value)}
                 placeholder="Введите имя"
@@ -1362,6 +1420,7 @@ export default function ProfilePage() {
               <input
                 type="email"
                 required
+                maxLength={254}
                 value={editProfileForm.email}
                 onChange={event => updateEditProfileForm('email', event.target.value)}
                 placeholder="Введите email"
@@ -1420,6 +1479,7 @@ export default function ProfilePage() {
 
                       <input
                         type="text"
+                        maxLength={MAX_CONTACT_VALUE_LENGTH}
                         value={contact.value}
                         onChange={event => updateContactField(contact.id, 'value', event.target.value)}
                         placeholder="Ник, ссылка или номер"

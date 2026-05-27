@@ -14,6 +14,16 @@ import { publicUrl } from '../lib/publicUrl';
 
 const LOGIN_IMAGE = publicUrl('media/images/original-54780b5d8c3bd316e079f55fc52e6baf.webp');
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function validateLoginForm(email: string, password: string): string {
+  if (!isValidEmail(email)) return 'Введите корректный email адрес.';
+  if (!password.trim()) return 'Введите пароль.';
+  return '';
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [emailShowValidation, setEmailShowValidation] = useState(false);
@@ -27,11 +37,17 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    const validationError = validateLoginForm(email, password);
     setError('');
-    setIsSubmitting(true);
 
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       navigate(getPostAuthRedirect(location.state));
     } catch (err) {
       setError(getLoginErrorMessage(err));
@@ -49,7 +65,7 @@ export default function LoginPage() {
         Рады снова видеть вас в SmashMarket
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-2.5 md:space-y-2.5">
+      <form onSubmit={handleSubmit} noValidate className="space-y-2.5 md:space-y-2.5">
         <div>
           <label htmlFor="login-email" className="mb-1 block text-xs font-medium text-white/85">
             Email адрес
@@ -131,7 +147,9 @@ export default function LoginPage() {
 
 function getLoginErrorMessage(err: unknown) {
   if (axios.isAxiosError(err)) {
+    if (err.response?.status === 400) return 'Введите корректный email и пароль.';
     if (err.response?.status === 401) return 'Неверный email или пароль.';
+    if (err.response?.status === 403) return 'У вас нет доступа к этому аккаунту.';
     if (err.response?.status) return `Ошибка входа: ${err.response.status}.`;
     return 'Сервер недоступен или запрос заблокирован браузером.';
   }

@@ -67,7 +67,6 @@ export function ProfileListingsProvider({ children }: { children: ReactNode }) {
 
   const listings = useMemo(() => {
     if (!user) return [];
-    if (user.role === 'admin') return allListings;
     return allListings.filter(product => product.ownerId === user.id);
   }, [allListings, user]);
 

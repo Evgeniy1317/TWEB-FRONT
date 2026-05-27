@@ -16,6 +16,18 @@ const REGISTER_IMAGE = encodeURI(
   publicUrl('media/images/original-34b544577285f74d3acfa8c67777a2ae (1).webp'),
 );
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function validateRegisterForm(name: string, email: string, password: string): string {
+  if (name.length < 3) return 'Имя и фамилия должны быть не короче 3 символов.';
+  if (name.length > 50) return 'Имя и фамилия должны быть не длиннее 50 символов.';
+  if (!isValidEmail(email)) return 'Введите корректный email адрес.';
+  if (password.length < 6) return 'Пароль должен быть не короче 6 символов.';
+  return '';
+}
+
 export default function RegisterPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -31,12 +43,18 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const displayName = [firstName, lastName].filter(Boolean).join(' ').trim();
+    const displayName = [firstName, lastName].map(x => x.trim()).filter(Boolean).join(' ').trim();
+    const validationError = validateRegisterForm(displayName, email, password);
     setError('');
-    setIsSubmitting(true);
 
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      await register({ name: displayName, email, password });
+      await register({ name: displayName, email: email.trim(), password });
       navigate(getPostAuthRedirect(location.state));
     } catch (err) {
       setError(getRegisterErrorMessage(err));
@@ -51,7 +69,7 @@ export default function RegisterPage() {
         Регистрация
       </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-2 sm:space-y-2">
+      <form onSubmit={handleSubmit} noValidate className="space-y-2 sm:space-y-2">
         <div className="grid gap-2 sm:grid-cols-2 sm:gap-x-3">
           <div>
             <label htmlFor="reg-first" className="mb-0.5 block text-xs font-medium text-white/85">
@@ -61,6 +79,8 @@ export default function RegisterPage() {
               id="reg-first"
               type="text"
               required
+              minLength={1}
+              maxLength={50}
               autoComplete="given-name"
               value={firstName}
               onChange={e => setFirstName(e.target.value)}
@@ -76,6 +96,8 @@ export default function RegisterPage() {
               id="reg-last"
               type="text"
               required
+              minLength={1}
+              maxLength={50}
               autoComplete="family-name"
               value={lastName}
               onChange={e => setLastName(e.target.value)}
@@ -113,11 +135,12 @@ export default function RegisterPage() {
               id="reg-password"
               type={showPassword ? 'text' : 'password'}
               required
+              minLength={6}
               autoComplete="new-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className={`${authInputClass} pr-10`}
-              placeholder="••••••••"
+              placeholder="********"
             />
             <button
               type="button"
@@ -158,10 +181,46 @@ export default function RegisterPage() {
 
 function getRegisterErrorMessage(err: unknown) {
   if (axios.isAxiosError(err)) {
-    if (err.response?.status === 400) return 'Не удалось создать аккаунт: проверьте данные или email.';
+    if (err.response?.status === 400) return getRegisterBadRequestMessage(err.response.data);
+    if (err.response?.status === 401) return 'Неверные данные для входа после регистрации.';
+    if (err.response?.status === 403) return 'Регистрация запрещена для этого аккаунта.';
     if (err.response?.status) return `Ошибка регистрации: ${err.response.status}.`;
     return 'Сервер недоступен или запрос заблокирован браузером.';
   }
 
   return 'Не удалось зарегистрироваться. Попробуйте еще раз.';
+}
+
+function getRegisterBadRequestMessage(data: unknown): string {
+  if (typeof data === 'string') {
+    const normalized = data.trim().toLowerCase();
+    if (normalized.includes('email already exists')) {
+      return 'Этот email уже зарегистрирован. Войдите в аккаунт или используйте другой email.';
+    }
+    if (normalized) return data;
+  }
+
+  if (data && typeof data === 'object') {
+    const errors =
+      'errors' in data && data.errors && typeof data.errors === 'object'
+        ? Object.entries(data.errors).flatMap(([field, value]) => {
+            const messages = Array.isArray(value) ? value : [value];
+            return messages
+              .filter((message): message is string => typeof message === 'string')
+              .map(message => translateRegisterFieldError(field, message));
+          })
+        : [];
+    if (errors.length > 0) return errors.join(' ');
+  }
+
+  return 'Проверьте имя, email и пароль.';
+}
+
+function translateRegisterFieldError(field: string, message: string): string {
+  const normalizedField = field.toLowerCase();
+  const normalizedMessage = message.toLowerCase();
+  if (normalizedField.includes('email') || normalizedMessage.includes('email')) return 'Введите корректный email адрес.';
+  if (normalizedField.includes('password') || normalizedMessage.includes('password')) return 'Пароль должен быть не короче 6 символов.';
+  if (normalizedField.includes('name') || normalizedMessage.includes('name')) return 'Имя и фамилия должны быть от 3 до 50 символов.';
+  return message;
 }
