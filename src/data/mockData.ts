@@ -307,6 +307,5 @@ export const mockUser: AppUser = {
   email: 'alex.morar@example.com',
   phone: '',
   contacts: [],
-  favorites: [1, 3, 5],
   avatar: null,
 };

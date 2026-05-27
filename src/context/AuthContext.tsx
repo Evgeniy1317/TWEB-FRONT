@@ -20,7 +20,6 @@ function loadStoredUser(): AppUser | null {
       name: typeof p.name === 'string' && p.name.trim() ? p.name : 'Пользователь',
       phone: p.phone,
       contacts: Array.isArray(p.contacts) ? p.contacts : [],
-      favorites: Array.isArray(p.favorites) ? p.favorites : [],
       avatar: p.avatar ?? null,
       role: p.role,
     });
@@ -44,7 +43,6 @@ function normalizeUser(user: AppUser): AppUser {
     ...user,
     phone: user.phone ?? '',
     contacts: Array.isArray(user.contacts) ? user.contacts : [],
-    favorites: Array.isArray(user.favorites) ? user.favorites : [],
     avatar: user.avatar ?? null,
   };
 }
@@ -151,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       email,
       name,
       contacts: [],
-      favorites: [],
       avatar: null,
       role,
     };

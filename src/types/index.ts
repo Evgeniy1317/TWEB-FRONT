@@ -109,7 +109,6 @@ export interface AppUser {
   email: string;
   phone?: string;
   contacts: UserContact[];
-  favorites: number[];
   avatar: string | null;
   /** RBAC-роль пользователя. */
   role?: 'admin' | 'manager' | 'user';
