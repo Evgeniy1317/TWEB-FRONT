@@ -1,11 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { AppUser } from '../types';
 import { authService } from '../services/api';
-import { mockUser } from '../data/mockData';
 
 const AUTH_STORAGE_KEY = 'smashmarket-auth-user-v1';
 const TOKEN_STORAGE_KEY = 'smashhub_token';
-const TEST_MODE_KEY = 'smash_test_mode';
 
 function loadStoredUser(): AppUser | null {
   if (typeof window === 'undefined') return null;
@@ -61,7 +59,6 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   register: (data: { name: string; email: string; password: string }) => Promise<boolean>;
-  loginTest: (role: 'admin' | 'manager' | 'user') => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Pick<AppUser, 'name' | 'email' | 'phone' | 'contacts'>) => Promise<void>;
 }
@@ -71,12 +68,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(() => loadStoredUser());
 
-  // При наличии токена подтягиваем актуальный профиль, включая роль.
   useEffect(() => {
     let cancelled = false;
-    const isTestMode = typeof window !== 'undefined' && localStorage.getItem(TEST_MODE_KEY) === '1';
     const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null;
-    if (isTestMode || !token) return;
+    if (!token) return;
     (async () => {
       try {
         const profile = await authService.getProfile();
@@ -85,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(next);
         persistUser(next);
       } catch {
-        // Если токен протух или битый, очищаем сессию.
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         persistUser(null);
         setUser(null);
@@ -98,7 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (email: string, password: string) => {
     const credentials = { email: email.trim(), password };
-    localStorage.removeItem(TEST_MODE_KEY);
     const res = await authService.login(credentials);
 
     const token = res.data?.token;
@@ -117,7 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (data: { name: string; email: string; password: string }) => {
-      localStorage.removeItem(TEST_MODE_KEY);
       await authService.register({
         name: data.name.trim(),
         email: data.email.trim(),
@@ -129,48 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [login],
   );
 
-  const loginTest = useCallback(async (role: 'admin' | 'manager' | 'user') => {
-    const name =
-      role === 'admin'
-        ? 'Администратор (тест)'
-        : role === 'manager'
-          ? 'Менеджер (тест)'
-          : 'Обычный пользователь (тест)';
-    const email =
-      role === 'admin'
-        ? 'admin@test.local'
-        : role === 'manager'
-          ? 'manager@test.local'
-          : 'user@test.local';
-
-    const next: AppUser = {
-      ...mockUser,
-      id: role === 'admin' ? 1000 : role === 'manager' ? 1001 : 1002,
-      email,
-      name,
-      contacts: [],
-      avatar: null,
-      role,
-    };
-
-    try {
-      localStorage.setItem(TEST_MODE_KEY, '1');
-      localStorage.removeItem(TOKEN_STORAGE_KEY);
-    } catch {
-      // ignore storage errors
-    }
-
-    setUser(next);
-    persistUser(next);
-    return true;
-  }, []);
-
   const logout = useCallback(() => {
-    try {
-      localStorage.removeItem(TEST_MODE_KEY);
-    } catch {
-      // ignore
-    }
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     setUser(null);
     persistUser(null);
@@ -199,11 +150,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: user !== null,
       login,
       register,
-      loginTest,
       logout,
       updateProfile,
     }),
-    [user, login, register, loginTest, logout, updateProfile],
+    [user, login, register, logout, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

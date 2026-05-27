@@ -90,6 +90,12 @@ export interface StringingOrder {
   totalLei?: number;
 }
 
+export interface CartLine {
+  id: number;
+  title: string;
+  price: number;
+}
+
 export type UserContactPlatform = 'telegram' | 'instagram' | 'viber' | 'facebook' | 'whatsapp';
 
 export interface SellerContactSnapshot {

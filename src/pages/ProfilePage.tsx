@@ -297,7 +297,7 @@ function ProfileListingCard({
 
 export default function ProfilePage() {
   const { user, isAuthenticated, logout, updateProfile } = useAuth();
-  const { items: cartItems, count: cartCount, removeFromCart } = useCart();
+  const { items: cartItems, count: cartCount, loading: cartLoading, removeFromCart } = useCart();
   const {
     listings: profileListings,
     loading: profileListingsLoading,
@@ -1076,10 +1076,14 @@ export default function ProfilePage() {
             )}
           </div>
 
-          {cartCount === 0 ? (
+          {cartLoading ? (
+            <p className="border-2 border-black bg-white p-5 text-sm text-neutral-700 sketch-shadow sm:p-6">
+              Загружаем корзину...
+            </p>
+          ) : cartCount === 0 ? (
             <ProfileEmptyState
               title="В корзине пока ничего нет."
-              description="Добавляйте товары с карточек в барахолке — список сохраняется в этом браузере."
+              description="Добавляйте товары с карточек в барахолке — список сохранится в вашем аккаунте."
               actionLabel="Перейти в барахолку"
               actionTo="/market"
             />
